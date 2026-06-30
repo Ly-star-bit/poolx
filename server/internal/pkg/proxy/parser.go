@@ -1,14 +1,17 @@
 package proxy
 
 import (
+	"bytes"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
 
+	"github.com/metacubex/mihomo/common/convert"
 	"gopkg.in/yaml.v3"
 )
 
@@ -59,13 +62,50 @@ func ParseYAML(content []byte) (*ParseResult, error) {
 	if len(doc.Proxies) == 0 {
 		return nil, fmt.Errorf("YAML 中未找到 proxies 列表")
 	}
+	return processProxyMaps(doc.Proxies), nil
+}
 
-	result := &ParseResult{
-		Nodes:  make([]ParsedNode, 0, len(doc.Proxies)),
-		Issues: make([]ParseIssue, 0),
+// ParseSubscription 是统一的订阅入口，按内容自动分发：
+//   - 内容像 Clash YAML（含顶层 proxies:）→ 走 ParseYAML；
+//   - 否则交给 mihomo `common/convert` 兼容 base64 / 明文 URI 列表
+//     （ss://、vmess://、vless://、trojan://、hysteria2://、tuic:// 等）。
+//
+// 这条路径与 ParseYAML 共用同一份 normalizeNode 逻辑（fingerprint 计算一致），
+// 保证同一节点不会因为订阅格式差异而被重复入库。
+func ParseSubscription(content []byte) (*ParseResult, error) {
+	trimmed := bytes.TrimSpace(content)
+	if len(trimmed) == 0 {
+		return nil, fmt.Errorf("订阅内容为空")
 	}
 
-	for index, raw := range doc.Proxies {
+	if looksLikeClashYAML(trimmed) {
+		return ParseYAML(content)
+	}
+
+	proxies, err := convert.ConvertsV2Ray(trimmed)
+	if err != nil {
+		return nil, fmt.Errorf("订阅格式无法识别（非 Clash YAML / base64 / URI 列表）: %v", err)
+	}
+	if len(proxies) == 0 {
+		return nil, fmt.Errorf("订阅中未解析出可用节点")
+	}
+	return processProxyMaps(proxies), nil
+}
+
+// proxiesYAMLKeyPattern 匹配 YAML 顶层（无缩进）的 `proxies:` 键，避免把
+// base64 字节里偶然出现的 `proxies` 子串当成 Clash YAML。
+var proxiesYAMLKeyPattern = regexp.MustCompile(`(?m)^proxies\s*:`)
+
+func looksLikeClashYAML(content []byte) bool {
+	return proxiesYAMLKeyPattern.Match(content)
+}
+
+func processProxyMaps(rawProxies []map[string]any) *ParseResult {
+	result := &ParseResult{
+		Nodes:  make([]ParsedNode, 0, len(rawProxies)),
+		Issues: make([]ParseIssue, 0),
+	}
+	for index, raw := range rawProxies {
 		node, issue := normalizeNode(index, raw)
 		if issue != nil {
 			result.Issues = append(result.Issues, *issue)
@@ -73,8 +113,7 @@ func ParseYAML(content []byte) (*ParseResult, error) {
 		}
 		result.Nodes = append(result.Nodes, *node)
 	}
-
-	return result, nil
+	return result
 }
 
 func normalizeNode(index int, raw map[string]any) (*ParsedNode, *ParseIssue) {

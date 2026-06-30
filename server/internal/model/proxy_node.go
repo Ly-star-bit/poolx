@@ -28,21 +28,47 @@ type ProxyNode struct {
 	UpdatedAt        time.Time  `json:"updated_at" gorm:"index"`
 }
 
+// 排序常量；与 service/handler 的 sort 参数对齐
+const (
+	ProxyNodeSortIDDesc     = "id_desc"
+	ProxyNodeSortLatencyAsc = "latency_asc"
+)
+
 type ProxyNodeListFilter struct {
 	Keyword        string
 	SourceConfigID int
 	Enabled        *bool
+	SortBy         string
 }
 
+// ListProxyNodes 列出代理节点。
+// limit < 0 表示不分页（用于全量测速等场景）；
+// limit == 0 时使用默认值 10，保持兼容现有调用方。
 func ListProxyNodes(offset int, limit int, filter ProxyNodeListFilter) ([]*ProxyNode, error) {
-	if limit <= 0 {
+	query := DB
+	if limit == 0 {
 		limit = 10
 	}
-	query := DB.Order("id desc").Limit(limit).Offset(offset)
+	if limit > 0 {
+		query = query.Limit(limit).Offset(offset)
+	}
+
+	switch filter.SortBy {
+	case ProxyNodeSortLatencyAsc:
+		// 已测且最快的在前；NULL（未测/失败）排末尾；同延迟下保持 id 倒序稳定。
+		query = query.
+			Order("(last_latency_ms IS NULL) ASC").
+			Order("last_latency_ms ASC").
+			Order("id DESC")
+	default:
+		query = query.Order("id DESC")
+	}
+
 	if filter.Keyword != "" {
-		keyword := filter.Keyword + "%"
+		keyword := "%" + filter.Keyword + "%"
 		query = query.Where(
-			"name LIKE ? OR server LIKE ? OR type LIKE ?",
+			"name LIKE ? OR server LIKE ? OR type LIKE ? OR tags LIKE ?",
+			keyword,
 			keyword,
 			keyword,
 			keyword,

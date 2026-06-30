@@ -217,3 +217,32 @@ func SortNodeIDs(ids []int) []int {
 	sort.Ints(result)
 	return result
 }
+
+// buildDefaultDNSSection 返回 PoolX 强制下发的最小 DNS 配置。
+// 设计要点：
+//   - enhanced-mode = normal：禁用 fake-ip，避免节点 server 域名被解析成假地址；
+//   - 不读取系统 DNS：避免被 Windows 网卡上残留的虚拟 DNS（如 sparkle 留下的
+//     198.18.0.2）污染；
+//   - ipv6 关闭：当前实现链路不需要 AAAA，关闭可避免无意义的查询拖延；
+//   - 使用国内公共 DNS：223.5.5.5 / 119.29.29.29 / tls://dns.alidns.com。
+//
+// 后续如需暴露给用户配置，应在工作台增加 DNS 设置入口并替换此默认值。
+func buildDefaultDNSSection() map[string]any {
+	nameservers := []string{
+		"223.5.5.5",
+		"119.29.29.29",
+		"tls://dns.alidns.com",
+	}
+	return map[string]any{
+		"enable":            true,
+		"ipv6":              false,
+		"enhanced-mode":     "normal",
+		"use-system-hosts":  false,
+		"respect-rules":     false,
+		"default-nameserver": []string{
+			"223.5.5.5",
+			"119.29.29.29",
+		},
+		"nameserver": nameservers,
+	}
+}

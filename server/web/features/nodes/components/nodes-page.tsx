@@ -16,9 +16,12 @@ import {
   deleteProxyNode,
   deleteProxyNodes,
   getProxyNodes,
+  testAllProxyNodes,
   testProxyNodes,
   updateProxyNodeTags,
+  type ProxyNodeSort,
 } from '@/features/nodes/api/nodes';
+import { groupNodesByRegion } from '@/features/nodes/lib/region';
 import type { ProxyNodeItem } from '@/features/nodes/types';
 import {
   DangerButton,
@@ -60,6 +63,10 @@ export function NodesPage() {
   const [enabledFilter, setEnabledFilter] = useState<'all' | 'true' | 'false'>(
     'all',
   );
+  // pageSize: 0 表示「全部」（不分页）；与后端 page_size=0 语义一致。
+  const [pageSize, setPageSize] = useState<number>(50);
+  const [sortBy, setSortBy] = useState<ProxyNodeSort>('id_desc');
+  const [groupByRegion, setGroupByRegion] = useState(false);
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [feedback, setFeedback] = useState<FeedbackState | null>(null);
   const [tagsInput, setTagsInput] = useState('');
@@ -72,12 +79,21 @@ export function NodesPage() {
   });
 
   const nodesQuery = useQuery({
-    queryKey: [...proxyNodesQueryKey, page, keyword, enabledFilter],
+    queryKey: [
+      ...proxyNodesQueryKey,
+      page,
+      keyword,
+      enabledFilter,
+      pageSize,
+      sortBy,
+    ],
     queryFn: () =>
       getProxyNodes({
         page,
         keyword,
         enabled: enabledFilter,
+        pageSize,
+        sort: sortBy,
       }),
     refetchInterval: autoRefresh ? 10000 : false,
   });
@@ -90,7 +106,12 @@ export function NodesPage() {
         message: '节点已删除。',
       });
       setSelectedIds((previous) => previous.filter((item) => item !== id));
-      await queryClient.invalidateQueries({ queryKey: proxyNodesQueryKey });
+      // 节点列表 + 工作台所有相关缓存（profile 列表、profile 详情、节点选项）
+      // 都需要刷新，否则编排页保存时会用旧 node_ids 报「部分节点不存在」。
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: proxyNodesQueryKey }),
+        queryClient.invalidateQueries({ queryKey: ['workspace'] }),
+      ]);
     },
     onError: (error) => {
       setFeedback({ tone: 'danger', message: getErrorMessage(error) });
@@ -105,7 +126,10 @@ export function NodesPage() {
         message: `已删除 ${result.deleted} 个节点。`,
       });
       setSelectedIds([]);
-      await queryClient.invalidateQueries({ queryKey: proxyNodesQueryKey });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: proxyNodesQueryKey }),
+        queryClient.invalidateQueries({ queryKey: ['workspace'] }),
+      ]);
     },
     onError: (error) => {
       setFeedback({ tone: 'danger', message: getErrorMessage(error) });
@@ -121,6 +145,24 @@ export function NodesPage() {
       setFeedback({
         tone: 'success',
         message: `测试已完成，共返回 ${result.length} 条结果。`,
+      });
+      await queryClient.invalidateQueries({ queryKey: proxyNodesQueryKey });
+    },
+    onError: (error) => {
+      setFeedback({ tone: 'danger', message: getErrorMessage(error) });
+    },
+  });
+
+  const testAllMutation = useMutation({
+    mutationFn: async () =>
+      testAllProxyNodes({
+        keyword,
+        enabled: enabledFilter,
+      }),
+    onSuccess: async (result) => {
+      setFeedback({
+        tone: 'success',
+        message: `已对当前筛选的 ${result.length} 个节点完成测速。`,
       });
       await queryClient.invalidateQueries({ queryKey: proxyNodesQueryKey });
     },
@@ -159,6 +201,9 @@ export function NodesPage() {
     setKeywordInput('');
     setKeyword('');
     setEnabledFilter('all');
+    setPageSize(50);
+    setSortBy('id_desc');
+    setGroupByRegion(false);
     setSelectedIds([]);
     setFeedback(null);
   };
@@ -170,6 +215,81 @@ export function NodesPage() {
         : previous.filter((item) => item !== nodeId),
     );
   };
+
+  const renderNodeCard = (node: ProxyNodeItem) => (
+    <div
+      key={node.id}
+      className="h-full rounded-2xl border border-[var(--border-default)] bg-[var(--surface-muted)] p-4"
+    >
+      <div className="flex h-full flex-col gap-4">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+          <div className="flex gap-3">
+            <input
+              type="checkbox"
+              checked={selectedIdSet.has(node.id)}
+              onChange={(event) =>
+                handleToggleSelection(node.id, event.target.checked)
+              }
+              className="mt-1 h-4 w-4 rounded border-[var(--border-default)] accent-[var(--brand-primary)]"
+            />
+            <div className="space-y-1">
+              <p className="text-sm font-semibold text-[var(--foreground-primary)]">
+                {node.name}
+              </p>
+              <p className="text-sm text-[var(--foreground-secondary)]">
+                {node.type.toUpperCase()} · {node.server}:{node.port}
+              </p>
+              <div className="text-xs text-[var(--foreground-secondary)]">
+                <p>来源：{node.source_config_name}</p>
+                <p>标签：{node.tags || '未设置'}</p>
+                <p>{getStatusLabel(node)}</p>
+                <p>
+                  最近耗时：
+                  {node.last_latency_ms !== undefined
+                    ? ` ${node.last_latency_ms} ms`
+                    : ' 未记录'}
+                </p>
+                <p>
+                  最近测试：
+                  {node.last_tested_at
+                    ? ` ${formatDateTime(node.last_tested_at)}`
+                    : ' 未执行'}
+                </p>
+                {node.last_test_error ? (
+                  <p>最近错误：{node.last_test_error}</p>
+                ) : null}
+              </div>
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-2 lg:justify-end">
+            <SecondaryButton
+              type="button"
+              onClick={() => {
+                setFeedback(null);
+                testMutation.mutate([node.id]);
+              }}
+              disabled={testMutation.isPending}
+            >
+              测试
+            </SecondaryButton>
+            <DangerButton
+              type="button"
+              onClick={() => {
+                if (!window.confirm(`确认删除节点“${node.name}”吗？`)) {
+                  return;
+                }
+                setFeedback(null);
+                deleteMutation.mutate(node.id);
+              }}
+              disabled={deleteMutation.isPending}
+            >
+              删除
+            </DangerButton>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <div className="space-y-6">
@@ -199,13 +319,16 @@ export function NodesPage() {
         />
       ) : null}
 
-      <AppCard title="筛选条件" description="支持按节点名称、地址和启用状态筛选。">
-        <div className="grid gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_auto]">
+      <AppCard
+        title="筛选条件"
+        description="支持按节点名称/标签/地址/类型模糊搜索，并自定义页大小、排序与分组展示。"
+      >
+        <div className="grid gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_auto]">
           <ResourceField label="关键字">
             <ResourceInput
               value={keywordInput}
               onChange={(event) => setKeywordInput(event.target.value)}
-              placeholder="输入节点名称、类型或地址"
+              placeholder="节点名/标签/地址/类型，支持中文"
             />
           </ResourceField>
           <ResourceField label="启用状态">
@@ -220,6 +343,33 @@ export function NodesPage() {
               <option value="false">仅禁用</option>
             </ResourceSelect>
           </ResourceField>
+          <ResourceField label="每页">
+            <ResourceSelect
+              value={String(pageSize)}
+              onChange={(event) => {
+                setPage(0);
+                setSelectedIds([]);
+                setPageSize(Number.parseInt(event.target.value, 10));
+              }}
+            >
+              <option value="50">50</option>
+              <option value="100">100</option>
+              <option value="200">200</option>
+              <option value="0">全部</option>
+            </ResourceSelect>
+          </ResourceField>
+          <ResourceField label="排序">
+            <ResourceSelect
+              value={sortBy}
+              onChange={(event) => {
+                setPage(0);
+                setSortBy(event.target.value as ProxyNodeSort);
+              }}
+            >
+              <option value="id_desc">默认（最新在前）</option>
+              <option value="latency_asc">延迟升序（最快在前）</option>
+            </ResourceSelect>
+          </ResourceField>
           <div className="flex items-end gap-2">
             <PrimaryButton type="button" onClick={handleSearch}>
               查询
@@ -228,6 +378,17 @@ export function NodesPage() {
               重置
             </SecondaryButton>
           </div>
+        </div>
+        <div className="mt-3 flex items-center gap-2 text-sm text-[var(--foreground-secondary)]">
+          <label className="inline-flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={groupByRegion}
+              onChange={(event) => setGroupByRegion(event.target.checked)}
+              className="h-4 w-4 rounded border-[var(--border-default)] accent-[var(--brand-primary)]"
+            />
+            按地区分组展示（前端分组，组内仍按当前排序）
+          </label>
         </div>
       </AppCard>
 
@@ -292,6 +453,23 @@ export function NodesPage() {
             >
               {testMutation.isPending ? '批量测试中...' : '批量测试'}
             </PrimaryButton>
+            <PrimaryButton
+              type="button"
+              onClick={() => {
+                if (
+                  !window.confirm(
+                    '将对「当前筛选条件下的全部节点」执行测速，可能耗时较长，确认继续？',
+                  )
+                ) {
+                  return;
+                }
+                setFeedback(null);
+                testAllMutation.mutate();
+              }}
+              disabled={testAllMutation.isPending}
+            >
+              {testAllMutation.isPending ? '全量测试中...' : '测试筛选全部'}
+            </PrimaryButton>
             <DangerButton
               type="button"
               onClick={() => {
@@ -328,96 +506,46 @@ export function NodesPage() {
           ) : null}
 
           {!nodesQuery.isLoading && !nodesQuery.isError && nodes.length > 0 ? (
-            <div className="grid gap-3 xl:grid-cols-2">
-              {nodes.map((node) => (
-                <div
-                  key={node.id}
-                  className="h-full rounded-2xl border border-[var(--border-default)] bg-[var(--surface-muted)] p-4"
-                >
-                  <div className="flex h-full flex-col gap-4">
-                    <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-                      <div className="flex gap-3">
-                        <input
-                          type="checkbox"
-                          checked={selectedIdSet.has(node.id)}
-                          onChange={(event) =>
-                            handleToggleSelection(node.id, event.target.checked)
-                          }
-                          className="mt-1 h-4 w-4 rounded border-[var(--border-default)] accent-[var(--brand-primary)]"
-                        />
-                        <div className="space-y-1">
-                          <p className="text-sm font-semibold text-[var(--foreground-primary)]">
-                            {node.name}
-                          </p>
-                          <p className="text-sm text-[var(--foreground-secondary)]">
-                            {node.type.toUpperCase()} · {node.server}:{node.port}
-                          </p>
-                          <div className="text-xs text-[var(--foreground-secondary)]">
-                            <p>来源：{node.source_config_name}</p>
-                            <p>标签：{node.tags || '未设置'}</p>
-                            <p>{getStatusLabel(node)}</p>
-                            <p>
-                              最近耗时：
-                              {node.last_latency_ms !== undefined
-                                ? ` ${node.last_latency_ms} ms`
-                                : ' 未记录'}
-                            </p>
-                            <p>
-                              最近测试：
-                              {node.last_tested_at
-                                ? ` ${formatDateTime(node.last_tested_at)}`
-                                : ' 未执行'}
-                            </p>
-                            {node.last_test_error ? (
-                              <p>最近错误：{node.last_test_error}</p>
-                            ) : null}
-                          </div>
-                        </div>
-                      </div>
-                      <div className="flex flex-wrap gap-2 lg:justify-end">
-                        <SecondaryButton
-                          type="button"
-                          onClick={() => {
-                            setFeedback(null);
-                            testMutation.mutate([node.id]);
-                          }}
-                          disabled={testMutation.isPending}
-                        >
-                          测试
-                        </SecondaryButton>
-                        <DangerButton
-                          type="button"
-                          onClick={() => {
-                            if (!window.confirm(`确认删除节点“${node.name}”吗？`)) {
-                              return;
-                            }
-                            setFeedback(null);
-                            deleteMutation.mutate(node.id);
-                          }}
-                          disabled={deleteMutation.isPending}
-                        >
-                          删除
-                        </DangerButton>
-                      </div>
+            groupByRegion ? (
+              <div className="space-y-6">
+                {groupNodesByRegion(nodes).map((group) => (
+                  <div key={group.region} className="space-y-3">
+                    <div className="flex items-center gap-2 text-sm font-semibold text-[var(--foreground-primary)]">
+                      <span>{group.region}</span>
+                      <span className="text-xs font-normal text-[var(--foreground-secondary)]">
+                        共 {group.nodes.length} 个
+                      </span>
+                    </div>
+                    <div className="grid gap-3 xl:grid-cols-2">
+                      {group.nodes.map((node) => renderNodeCard(node))}
                     </div>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            ) : (
+              <div className="grid gap-3 xl:grid-cols-2">
+                {nodes.map((node) => renderNodeCard(node))}
+              </div>
+            )
           ) : null}
 
           <div className="flex justify-end gap-2">
             <SecondaryButton
               type="button"
               onClick={() => setPage((previous) => Math.max(previous - 1, 0))}
-              disabled={page === 0 || nodesQuery.isLoading}
+              disabled={page === 0 || nodesQuery.isLoading || pageSize === 0}
             >
               上一页
             </SecondaryButton>
             <PrimaryButton
               type="button"
               onClick={() => setPage((previous) => previous + 1)}
-              disabled={nodesQuery.isLoading || nodes.length === 0}
+              disabled={
+                nodesQuery.isLoading ||
+                nodes.length === 0 ||
+                pageSize === 0 ||
+                (pageSize > 0 && nodes.length < pageSize)
+              }
             >
               下一页
             </PrimaryButton>

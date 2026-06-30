@@ -153,7 +153,23 @@ func buildSingleProxyConfig(proxyMap map[string]any, proxyName string, mixedPort
 		"mode":       "rule",
 		"log-level":  "silent",
 		"ipv6":       true,
-		"proxies":    []any{proxyMap},
+		// 显式 DNS 配置，避免被系统残留的 fake-ip DNS 污染节点 server 域名解析。
+		// 详见 runtimeconfig.buildDefaultDNSSection 的说明。
+		"dns": map[string]any{
+			"enable":           true,
+			"ipv6":             false,
+			"enhanced-mode":    "normal",
+			"use-system-hosts": false,
+			"default-nameserver": []string{
+				"223.5.5.5",
+				"119.29.29.29",
+			},
+			"nameserver": []string{
+				"223.5.5.5",
+				"119.29.29.29",
+			},
+		},
+		"proxies": []any{proxyMap},
 		"proxy-groups": []map[string]any{
 			{
 				"name":    "POOLX-NODE-TEST",

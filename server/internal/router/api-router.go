@@ -99,6 +99,7 @@ func SetApiRouter(router *gin.Engine) {
 			proxyNodeRoute.POST("/delete", controller.DeleteProxyNodes)
 			proxyNodeRoute.POST("/tags", controller.UpdateProxyNodeTags)
 			proxyNodeRoute.POST("/test", controller.TestProxyNodes)
+			proxyNodeRoute.POST("/test-all", controller.TestAllProxyNodes)
 			proxyNodeRoute.POST("/:id/status", controller.UpdateProxyNodeStatus)
 			proxyNodeRoute.POST("/:id/delete", controller.DeleteProxyNode)
 		}

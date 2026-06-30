@@ -187,6 +187,128 @@ func TestNormalizeProxyNodeTags(t *testing.T) {
 	}
 }
 
+func seedNodeForListTest(t *testing.T, node *model.ProxyNode) {
+	t.Helper()
+	if err := model.DB.Create(node).Error; err != nil {
+		t.Fatalf("seed proxy node: %v", err)
+	}
+}
+
+// 验证关键词在节点名中间也能命中（修复「香港」搜不到的回归用例）。
+func TestListProxyNodesKeywordFuzzyMatchesMiddleSubstring(t *testing.T) {
+	setupServiceTestDB(t)
+
+	seedNodeForListTest(t, &model.ProxyNode{
+		SourceConfigID: 1, SourceConfigName: "seed.yaml",
+		Name: "🇭🇰 香港 01", Type: "ss", Server: "1.1.1.1", Port: 443,
+		Fingerprint: "fp-hk-01", MetadataJSON: "{}", Enabled: true,
+	})
+	seedNodeForListTest(t, &model.ProxyNode{
+		SourceConfigID: 1, SourceConfigName: "seed.yaml",
+		Name: "JP-tokyo", Type: "ss", Server: "2.2.2.2", Port: 443,
+		Fingerprint: "fp-jp-01", MetadataJSON: "{}", Enabled: true,
+	})
+
+	got, err := ListProxyNodes(ProxyNodeListInput{Keyword: "香港", PageSize: 100})
+	if err != nil {
+		t.Fatalf("ListProxyNodes: %v", err)
+	}
+	if len(got) != 1 || got[0].Name != "🇭🇰 香港 01" {
+		t.Fatalf("expected to match 香港 node, got %+v", got)
+	}
+}
+
+// 验证关键词命中 tags 字段。
+func TestListProxyNodesKeywordMatchesTags(t *testing.T) {
+	setupServiceTestDB(t)
+
+	seedNodeForListTest(t, &model.ProxyNode{
+		SourceConfigID: 1, SourceConfigName: "seed.yaml",
+		Name: "node-a", Type: "ss", Server: "1.1.1.1", Port: 443,
+		Tags:        "premium, hk",
+		Fingerprint: "fp-tag-a", MetadataJSON: "{}", Enabled: true,
+	})
+	seedNodeForListTest(t, &model.ProxyNode{
+		SourceConfigID: 1, SourceConfigName: "seed.yaml",
+		Name: "node-b", Type: "ss", Server: "2.2.2.2", Port: 443,
+		Tags:        "free",
+		Fingerprint: "fp-tag-b", MetadataJSON: "{}", Enabled: true,
+	})
+
+	got, err := ListProxyNodes(ProxyNodeListInput{Keyword: "premium", PageSize: 100})
+	if err != nil {
+		t.Fatalf("ListProxyNodes: %v", err)
+	}
+	if len(got) != 1 || got[0].Name != "node-a" {
+		t.Fatalf("expected to match by tags, got %+v", got)
+	}
+}
+
+// 验证 latency_asc 排序：最快的在前，未测/失败 NULL 在末尾。
+func TestListProxyNodesSortByLatencyAscPutsNullLast(t *testing.T) {
+	setupServiceTestDB(t)
+
+	fast := 100
+	slow := 500
+	seedNodeForListTest(t, &model.ProxyNode{
+		SourceConfigID: 1, SourceConfigName: "seed.yaml",
+		Name: "slow", Type: "ss", Server: "1.1.1.1", Port: 1,
+		Fingerprint: "fp-slow", MetadataJSON: "{}", Enabled: true,
+		LastTestStatus: model.NodeTestStatusSuccess, LastLatencyMS: &slow,
+	})
+	seedNodeForListTest(t, &model.ProxyNode{
+		SourceConfigID: 1, SourceConfigName: "seed.yaml",
+		Name: "untested", Type: "ss", Server: "2.2.2.2", Port: 2,
+		Fingerprint: "fp-untested", MetadataJSON: "{}", Enabled: true,
+		LastTestStatus: model.NodeTestStatusUnknown, LastLatencyMS: nil,
+	})
+	seedNodeForListTest(t, &model.ProxyNode{
+		SourceConfigID: 1, SourceConfigName: "seed.yaml",
+		Name: "fast", Type: "ss", Server: "3.3.3.3", Port: 3,
+		Fingerprint: "fp-fast", MetadataJSON: "{}", Enabled: true,
+		LastTestStatus: model.NodeTestStatusSuccess, LastLatencyMS: &fast,
+	})
+
+	got, err := ListProxyNodes(ProxyNodeListInput{
+		PageSize: 100,
+		SortBy:   model.ProxyNodeSortLatencyAsc,
+	})
+	if err != nil {
+		t.Fatalf("ListProxyNodes: %v", err)
+	}
+	if len(got) != 3 {
+		t.Fatalf("expected 3 nodes, got %d", len(got))
+	}
+	if got[0].Name != "fast" || got[1].Name != "slow" || got[2].Name != "untested" {
+		t.Fatalf("unexpected order: %s, %s, %s", got[0].Name, got[1].Name, got[2].Name)
+	}
+}
+
+// 验证 PageSize<0 表示「全部」，不再受默认分页限制。
+func TestListProxyNodesAllPagesWhenPageSizeNegative(t *testing.T) {
+	setupServiceTestDB(t)
+
+	for i := 0; i < 25; i++ {
+		seedNodeForListTest(t, &model.ProxyNode{
+			SourceConfigID: 1, SourceConfigName: "seed.yaml",
+			Name:        "n-" + string(rune('a'+i%26)),
+			Type:        "ss",
+			Server:      "10.0.0.1",
+			Port:        i + 1,
+			Fingerprint: "fp-page-" + string(rune('a'+i)),
+			MetadataJSON: "{}", Enabled: true,
+		})
+	}
+
+	got, err := ListProxyNodes(ProxyNodeListInput{PageSize: -1})
+	if err != nil {
+		t.Fatalf("ListProxyNodes: %v", err)
+	}
+	if len(got) != 25 {
+		t.Fatalf("expected all 25 nodes, got %d", len(got))
+	}
+}
+
 type assertiveError string
 
 func (e assertiveError) Error() string {

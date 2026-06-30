@@ -128,9 +128,14 @@ func RenderFinalMihomoConfig(input AggregatedMihomoInput) (*FinalRenderResult, e
 		"log-level":           "info",
 		"external-controller": input.ControllerAddress,
 		"secret":              input.ControllerSecret,
-		"listeners":           listeners,
-		"proxies":             proxies,
-		"proxy-groups":        groups,
+		// 显式下发 DNS 配置，绝不依赖系统 DNS。
+		// 背景：Windows 系统 DNS 列表里可能残留 sparkle/Clash Verge 注册的虚拟 DNS
+		// （如 198.18.0.2），命中后会返回 fake-ip，导致节点 server 域名解析成 198.18.0.x
+		// 假地址、所有节点拨号失败。
+		"dns":          buildDefaultDNSSection(),
+		"listeners":    listeners,
+		"proxies":      proxies,
+		"proxy-groups": groups,
 		"rules": []string{
 			"MATCH,DIRECT",
 		},

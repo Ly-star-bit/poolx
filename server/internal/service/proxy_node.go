@@ -10,17 +10,25 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"gorm.io/gorm"
 )
 
-const maxNodeTestParallelism = 4
+const (
+	maxNodeTestParallelism = 8
+	// page_size 上限保护，防止异常请求一次拉巨量数据
+	maxProxyNodePageSize = 1000
+)
 
 var runNodeKernelTest = kernelpkg.TestNodeWithMihomo
 
 type ProxyNodeListInput struct {
 	Page           int
+	PageSize       int // >0 用指定值；<0 表示「全部」（不分页）；0 视为未传，回退默认页大小
 	Keyword        string
 	SourceConfigID int
 	Enabled        *bool
+	SortBy         string
 }
 
 type NodeTestInput struct {
@@ -58,10 +66,32 @@ func ListProxyNodes(input ProxyNodeListInput) ([]*model.ProxyNode, error) {
 	if page < 0 {
 		page = 0
 	}
-	return model.ListProxyNodes(page*common.ItemsPerPage, common.ItemsPerPage, model.ProxyNodeListFilter{
+
+	// PageSize 语义：>0 用指定值（有上限保护）；<0 表示「全部」，传 -1 给 model 跳过分页；
+	// ==0 视为未传，回退默认 ItemsPerPage（兼容历史 handler 调用）。
+	var limit int
+	switch {
+	case input.PageSize > 0:
+		limit = input.PageSize
+		if limit > maxProxyNodePageSize {
+			limit = maxProxyNodePageSize
+		}
+	case input.PageSize < 0:
+		limit = -1
+	default:
+		limit = common.ItemsPerPage
+	}
+
+	offset := 0
+	if limit > 0 {
+		offset = page * limit
+	}
+
+	return model.ListProxyNodes(offset, limit, model.ProxyNodeListFilter{
 		Keyword:        strings.TrimSpace(input.Keyword),
 		SourceConfigID: input.SourceConfigID,
 		Enabled:        input.Enabled,
+		SortBy:         input.SortBy,
 	})
 }
 
@@ -81,7 +111,14 @@ func DeleteProxyNode(id int) error {
 	if _, err := model.GetProxyNodeByID(id); err != nil {
 		return fmt.Errorf("节点不存在")
 	}
-	return model.DeleteProxyNodeByID(id)
+	// 用事务保证：节点本体与所有 PortProfile 引用同时删除，避免
+	// 工作台残留指向已删节点的 node_id，保存时报「部分节点不存在」。
+	return model.DB.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Where("proxy_node_id = ?", id).Delete(&model.PortProfileNode{}).Error; err != nil {
+			return err
+		}
+		return tx.Delete(&model.ProxyNode{}, "id = ?", id).Error
+	})
 }
 
 func DeleteProxyNodes(ids []int) (int, error) {
@@ -132,8 +169,6 @@ func ExecuteNodeTests(ctx context.Context, input NodeTestInput) ([]NodeTestExecu
 	if strings.TrimSpace(common.MihomoBinaryPath) == "" {
 		return nil, fmt.Errorf("请先在系统设置中完成 Mihomo 二进制安装或路径校验")
 	}
-	timeout := normalizeNodeTestTimeout(input.TimeoutMS)
-	testURL := normalizeNodeTestURL(input.TestURL)
 
 	nodes, err := model.FindProxyNodesByIDs(input.NodeIDs)
 	if err != nil {
@@ -142,6 +177,48 @@ func ExecuteNodeTests(ctx context.Context, input NodeTestInput) ([]NodeTestExecu
 	if len(nodes) == 0 {
 		return nil, fmt.Errorf("未找到可测试的节点")
 	}
+
+	return runNodeTests(ctx, nodes, input.TimeoutMS, input.TestURL)
+}
+
+// ProxyNodeTestFilterInput 用于「按筛选条件全量测速」。
+// 复用 ProxyNodeListInput 的筛选字段，但不分页（PageSize 强制为 -1）。
+type ProxyNodeTestFilterInput struct {
+	Keyword        string
+	SourceConfigID int
+	Enabled        *bool
+	TimeoutMS      int
+	TestURL        string
+}
+
+// ExecuteNodeTestsByFilter 按筛选条件取出全部节点并测速。
+// 用于前端「测试筛选全部」入口，不受分页限制。
+func ExecuteNodeTestsByFilter(ctx context.Context, input ProxyNodeTestFilterInput) ([]NodeTestExecution, error) {
+	if strings.TrimSpace(common.MihomoBinaryPath) == "" {
+		return nil, fmt.Errorf("请先在系统设置中完成 Mihomo 二进制安装或路径校验")
+	}
+
+	nodes, err := ListProxyNodes(ProxyNodeListInput{
+		Keyword:        input.Keyword,
+		SourceConfigID: input.SourceConfigID,
+		Enabled:        input.Enabled,
+		PageSize:       -1, // 不分页，取全部
+	})
+	if err != nil {
+		return nil, err
+	}
+	if len(nodes) == 0 {
+		return nil, fmt.Errorf("未找到可测试的节点")
+	}
+
+	return runNodeTests(ctx, nodes, input.TimeoutMS, input.TestURL)
+}
+
+// runNodeTests 是 ExecuteNodeTests 与 ExecuteNodeTestsByFilter 共用的 worker-pool 实现。
+// 调用方负责确保 nodes 非空、Mihomo 二进制已就绪。
+func runNodeTests(ctx context.Context, nodes []*model.ProxyNode, timeoutMS int, testURL string) ([]NodeTestExecution, error) {
+	timeout := normalizeNodeTestTimeout(timeoutMS)
+	normalizedURL := normalizeNodeTestURL(testURL)
 
 	type indexedExecution struct {
 		index int
@@ -160,7 +237,7 @@ func ExecuteNodeTests(ctx context.Context, input NodeTestInput) ([]NodeTestExecu
 			defer wg.Done()
 			for index := range jobs {
 				node := nodes[index]
-				execution := buildNodeTestExecution(ctx, node, timeout, testURL)
+				execution := buildNodeTestExecution(ctx, node, timeout, normalizedURL)
 				resultsCh <- indexedExecution{index: index, item: execution}
 			}
 		}()

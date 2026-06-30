@@ -124,7 +124,7 @@ func parseAndStoreSourceConfig(input sourceParseInput) (*SourceParseResponse, er
 		return nil, fmt.Errorf("上传内容为空")
 	}
 
-	parseResult, err := proxypkg.ParseYAML(input.Content)
+	parseResult, err := proxypkg.ParseSubscription(input.Content)
 	if err != nil {
 		return nil, err
 	}
@@ -178,7 +178,7 @@ func ImportSourceConfig(sourceConfigID int, fingerprints []string) (*SourceImpor
 		return nil, fmt.Errorf("导入记录不存在")
 	}
 
-	parseResult, err := proxypkg.ParseYAML([]byte(sourceConfig.RawContent))
+	parseResult, err := proxypkg.ParseSubscription([]byte(sourceConfig.RawContent))
 	if err != nil {
 		return nil, err
 	}
@@ -246,7 +246,7 @@ func TestSourceConfigNodes(ctx context.Context, sourceConfigID int, input NodeTe
 		return nil, fmt.Errorf("导入记录不存在")
 	}
 
-	parseResult, err := proxypkg.ParseYAML([]byte(sourceConfig.RawContent))
+	parseResult, err := proxypkg.ParseSubscription([]byte(sourceConfig.RawContent))
 	if err != nil {
 		return nil, err
 	}
