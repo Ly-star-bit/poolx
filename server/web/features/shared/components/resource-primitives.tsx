@@ -5,6 +5,7 @@ import type {
   SelectHTMLAttributes,
   TextareaHTMLAttributes,
 } from 'react';
+import { HelpCircle } from 'lucide-react';
 
 import { cn } from '@/lib/utils/cn';
 
@@ -19,11 +20,11 @@ interface ResourceFieldProps {
 
 function FieldTooltip({ content }: { content: string }) {
   return (
-    <span className="group/tooltip relative inline-flex">
-      <span className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-[var(--border-default)] bg-[var(--surface-elevated)] text-[11px] font-semibold text-[var(--foreground-secondary)] transition group-hover/tooltip:border-[var(--border-strong)] group-hover/tooltip:text-[var(--foreground-primary)]">
-        ?
+    <span className="group/tooltip relative inline-flex items-center">
+      <span className="inline-flex cursor-help text-[var(--foreground-muted)] transition hover:text-[var(--foreground-primary)]">
+        <HelpCircle className="h-3.5 w-3.5" />
       </span>
-      <span className="pointer-events-none absolute top-full left-1/2 z-20 mt-2 w-64 -translate-x-1/2 rounded-2xl border border-[var(--border-default)] bg-[var(--surface-panel)] px-3 py-2 text-xs leading-5 text-[var(--foreground-secondary)] opacity-0 shadow-[var(--shadow-soft)] transition-opacity delay-700 duration-200 group-hover/tooltip:opacity-100">
+      <span className="pointer-events-none absolute bottom-full left-1/2 z-30 mb-2 w-64 -translate-x-1/2 rounded-lg border border-[var(--border-default)] bg-[var(--surface-card)] px-3 py-2 text-xs leading-5 text-[var(--foreground-secondary)] opacity-0 shadow-lg backdrop-blur-md transition-opacity duration-150 group-hover/tooltip:opacity-100">
         {content}
       </span>
     </span>
@@ -39,18 +40,18 @@ export function ResourceField({
   children,
 }: ResourceFieldProps) {
   return (
-    <label className={cn('block space-y-2', className)}>
-      <span className="flex items-center gap-2 text-sm font-medium text-[var(--foreground-primary)]">
+    <label className={cn('block space-y-1.5', className)}>
+      <span className="flex items-center gap-1.5 text-xs font-medium text-[var(--foreground-secondary)]">
         <span>{label}</span>
         {tooltip ? <FieldTooltip content={tooltip} /> : null}
       </span>
       {children}
       {error ? (
-        <span className="block text-xs text-[var(--status-danger-foreground)]">
+        <span className="block text-xs font-medium text-[var(--status-danger-foreground)]">
           {error}
         </span>
       ) : hint ? (
-        <span className="block text-xs text-[var(--foreground-secondary)]">
+        <span className="block text-xs text-[var(--foreground-muted)]">
           {hint}
         </span>
       ) : null}
@@ -63,7 +64,7 @@ export function ResourceInput(props: InputHTMLAttributes<HTMLInputElement>) {
     <input
       {...props}
       className={cn(
-        'w-full rounded-2xl border border-[var(--border-default)] bg-[var(--surface-elevated)] px-4 py-3 text-sm text-[var(--foreground-primary)] transition outline-none placeholder:text-[var(--foreground-muted)] focus:border-[var(--border-strong)] focus:ring-2 focus:ring-[var(--accent-soft)] disabled:cursor-not-allowed disabled:opacity-60',
+        'w-full rounded-lg border border-[var(--border-default)] bg-[var(--surface-elevated)] px-3 py-2 text-sm text-[var(--foreground-primary)] transition outline-none placeholder:text-[var(--foreground-muted)] focus:border-[var(--brand-primary)] focus:ring-2 focus:ring-[var(--brand-primary-soft)] disabled:cursor-not-allowed disabled:opacity-50',
         props.className,
       )}
     />
@@ -77,7 +78,7 @@ export function ResourceTextarea(
     <textarea
       {...props}
       className={cn(
-        'min-h-28 w-full rounded-2xl border border-[var(--border-default)] bg-[var(--surface-elevated)] px-4 py-3 text-sm text-[var(--foreground-primary)] transition outline-none placeholder:text-[var(--foreground-muted)] focus:border-[var(--border-strong)] focus:ring-2 focus:ring-[var(--accent-soft)] disabled:cursor-not-allowed disabled:opacity-60',
+        'min-h-24 w-full rounded-lg border border-[var(--border-default)] bg-[var(--surface-elevated)] px-3 py-2 text-sm text-[var(--foreground-primary)] transition outline-none placeholder:text-[var(--foreground-muted)] focus:border-[var(--brand-primary)] focus:ring-2 focus:ring-[var(--brand-primary-soft)] disabled:cursor-not-allowed disabled:opacity-50',
         props.className,
       )}
     />
@@ -89,7 +90,7 @@ export function ResourceSelect(props: SelectHTMLAttributes<HTMLSelectElement>) {
     <select
       {...props}
       className={cn(
-        'w-full rounded-2xl border border-[var(--border-default)] bg-[var(--surface-elevated)] px-4 py-3 text-sm text-[var(--foreground-primary)] transition outline-none focus:border-[var(--border-strong)] focus:ring-2 focus:ring-[var(--accent-soft)] disabled:cursor-not-allowed disabled:opacity-60',
+        'w-full rounded-lg border border-[var(--border-default)] bg-[var(--surface-elevated)] px-3 py-2 text-sm text-[var(--foreground-primary)] transition outline-none focus:border-[var(--brand-primary)] focus:ring-2 focus:ring-[var(--brand-primary-soft)] disabled:cursor-not-allowed disabled:opacity-50',
         props.className,
       )}
     />
@@ -98,7 +99,7 @@ export function ResourceSelect(props: SelectHTMLAttributes<HTMLSelectElement>) {
 
 function baseButtonClassName(className?: string) {
   return cn(
-    'inline-flex items-center justify-center rounded-2xl px-4 py-3 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-60',
+    'inline-flex items-center justify-center gap-1.5 rounded-lg px-3.5 py-2 text-xs font-medium transition-all active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50',
     className,
   );
 }
@@ -112,7 +113,7 @@ export function PrimaryButton({
       {...props}
       className={baseButtonClassName(
         cn(
-          'bg-[var(--brand-primary)] text-[var(--foreground-inverse)] hover:opacity-90',
+          'bg-[var(--brand-primary)] text-white shadow-sm hover:brightness-110 active:brightness-95',
           className,
         ),
       )}
@@ -129,7 +130,7 @@ export function SecondaryButton({
       {...props}
       className={baseButtonClassName(
         cn(
-          'border border-[var(--border-default)] bg-[var(--control-background)] text-[var(--foreground-primary)] hover:bg-[var(--control-background-hover)]',
+          'border border-[var(--border-default)] bg-[var(--surface-elevated)] text-[var(--foreground-primary)] hover:bg-[var(--control-background-hover)] hover:border-[var(--border-strong)]',
           className,
         ),
       )}
@@ -146,7 +147,24 @@ export function DangerButton({
       {...props}
       className={baseButtonClassName(
         cn(
-          'border border-[var(--status-danger-border)] bg-[var(--status-danger-soft)] text-[var(--status-danger-foreground)] hover:opacity-90',
+          'border border-[var(--status-danger-border)] bg-[var(--status-danger-soft)] text-[var(--status-danger-foreground)] hover:bg-rose-500/20',
+          className,
+        ),
+      )}
+    />
+  );
+}
+
+export function GhostButton({
+  className,
+  ...props
+}: ButtonHTMLAttributes<HTMLButtonElement>) {
+  return (
+    <button
+      {...props}
+      className={baseButtonClassName(
+        cn(
+          'text-[var(--foreground-secondary)] hover:text-[var(--foreground-primary)] hover:bg-[var(--control-background-hover)]',
           className,
         ),
       )}
@@ -172,21 +190,21 @@ export function ToggleField({
   onChange,
 }: ToggleFieldProps) {
   return (
-    <label className="flex self-start cursor-pointer items-start gap-3 rounded-2xl border border-[var(--border-default)] bg-[var(--surface-elevated)] px-4 py-3">
+    <label className="flex self-start cursor-pointer items-start gap-2.5 rounded-lg border border-[var(--border-default)] bg-[var(--surface-elevated)] px-3 py-2.5 transition hover:border-[var(--border-strong)]">
       <input
         type="checkbox"
         checked={checked}
         disabled={disabled}
         onChange={(event) => onChange(event.target.checked)}
-        className="mt-1 h-4 w-4 rounded border-[var(--border-default)] accent-[var(--brand-primary)]"
+        className="mt-0.5 h-4 w-4 rounded border-[var(--border-default)] accent-[var(--brand-primary)]"
       />
       <span className="flex flex-col">
-        <span className="flex items-center gap-2 text-sm font-medium text-[var(--foreground-primary)]">
+        <span className="flex items-center gap-1.5 text-xs font-medium text-[var(--foreground-primary)]">
           <span>{label}</span>
           {tooltip ? <FieldTooltip content={tooltip} /> : null}
         </span>
         {description ? (
-          <span className="mt-1 block text-xs leading-5 text-[var(--foreground-secondary)]">
+          <span className="mt-0.5 block text-xs leading-4 text-[var(--foreground-muted)]">
             {description}
           </span>
         ) : null}
@@ -205,7 +223,7 @@ export function CodeBlock({
   return (
     <pre
       className={cn(
-        'overflow-x-auto rounded-2xl border border-[var(--border-default)] bg-[var(--surface-elevated)] px-4 py-4 text-xs leading-6 text-[var(--foreground-primary)]',
+        'overflow-x-auto rounded-lg border border-[var(--border-default)] bg-[var(--surface-panel)] p-3 text-xs font-mono leading-relaxed text-[var(--foreground-primary)]',
         className,
       )}
     >

@@ -290,7 +290,7 @@ export function SourceImportPanel({
                 onChange={(event) =>
                   setSelectedFile(event.target.files?.[0] ?? null)
                 }
-                className="block w-full rounded-2xl border border-[var(--border-default)] bg-[var(--surface-base)] px-3 py-2 text-sm text-[var(--foreground-primary)]"
+                className="block w-full rounded-lg border border-[var(--border-default)] bg-[var(--surface-base)] px-3 py-2 text-sm text-[var(--foreground-primary)] file:mr-4 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-[var(--surface-muted)] file:text-[var(--foreground-primary)] hover:file:bg-[var(--surface-raised)]"
               />
             </ResourceField>
           ) : (
@@ -455,7 +455,7 @@ export function SourceImportPanel({
                 {previewNodes.map((node, index) => (
                   <div
                     key={`${node.fingerprint}-${index}`}
-                    className="rounded-2xl border border-[var(--border-default)] bg-[var(--surface-muted)] p-4"
+                    className="rounded-xl border border-[var(--border-default)] bg-[var(--surface-raised)] p-4 hover:border-[var(--border-hover)] transition-colors"
                   >
                     <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
                       <div className="flex gap-3">
@@ -504,7 +504,7 @@ export function SourceImportPanel({
                   parseResult.errors.map((issue, index) => (
                     <div
                       key={`${issue.index}-${index}`}
-                      className="rounded-2xl border border-[var(--status-danger-border)] bg-[var(--status-danger-soft)] p-4 text-sm text-[var(--status-danger-foreground)]"
+                      className="rounded-xl border border-[var(--status-danger-border)] bg-[var(--status-danger-soft)] p-4 text-sm text-[var(--status-danger-foreground)]"
                     >
                       <p className="font-medium">
                         条目 #{issue.index + 1}
@@ -530,7 +530,7 @@ export function SourceImportPanel({
                   testResults.map((item, index) => (
                     <div
                       key={`${item.node_name}-${index}`}
-                      className="rounded-2xl border border-[var(--border-default)] bg-[var(--surface-muted)] p-4"
+                      className="rounded-xl border border-[var(--border-default)] bg-[var(--surface-raised)] p-4"
                     >
                       <p className="text-sm font-semibold text-[var(--foreground-primary)]">
                         {item.node_name}

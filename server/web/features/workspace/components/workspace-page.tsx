@@ -402,10 +402,10 @@ export function WorkspacePage() {
                     setSelectedProfileId(item.profile.id)
                     setFeedback(null)
                   }}
-                  className={`w-full rounded-2xl border p-4 text-left transition ${
+                  className={`w-full rounded-xl border p-4 text-left transition-all duration-150 ${
                     selectedProfileId === item.profile.id
-                      ? 'border-[var(--border-strong)] bg-[var(--accent-soft)]'
-                      : 'border-[var(--border-default)] bg-[var(--surface-muted)] hover:bg-[var(--surface-base)]'
+                      ? 'border-[var(--brand-primary)] bg-[var(--surface-raised)] shadow-xs ring-1 ring-[var(--brand-primary)]/30'
+                      : 'border-[var(--border-default)] bg-[var(--surface-raised)] hover:border-[var(--border-hover)]'
                   }`}
                 >
                   <div className="flex items-start justify-between gap-3">
@@ -470,7 +470,7 @@ export function WorkspacePage() {
                   {templateList.map((item) => (
                     <div
                       key={item.template.id}
-                      className="rounded-2xl border border-[var(--border-default)] bg-[var(--surface-muted)] p-4"
+                      className="rounded-xl border border-[var(--border-default)] bg-[var(--surface-raised)] p-4"
                     >
                       <div className="flex flex-wrap items-start justify-between gap-3">
                         <div className="space-y-1">
@@ -581,7 +581,7 @@ export function WorkspacePage() {
                   placeholder="127.0.0.1"
                 />
               </ResourceField>
-              <div className="rounded-2xl border border-[var(--border-defau lt)] bg-[var(--surface-muted)] p-4 xl:col-span-2">
+              <div className="rounded-xl border border-[var(--border-default)] bg-[var(--surface-muted)] p-4 xl:col-span-2">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="space-y-1">
                     <p className="text-sm font-semibold text-[var(--foreground-primary)]">
@@ -715,7 +715,7 @@ export function WorkspacePage() {
                     </ResourceSelect>
                   </ResourceField>
                   <div className="grid gap-3 lg:grid-cols-2">
-                    <div className="rounded-2xl border border-[var(--border-default)] bg-[var(--surface-muted)] p-4">
+                    <div className="rounded-xl border border-[var(--border-default)] bg-[var(--surface-muted)] p-4">
                       <div className="flex items-center justify-between gap-3">
                         <div className="space-y-1">
                           <Label htmlFor="load-balance-lazy">延迟懒加载探测</Label>
@@ -738,7 +738,7 @@ export function WorkspacePage() {
                         />
                       </div>
                     </div>
-                    <div className="rounded-2xl border border-[var(--border-default)] bg-[var(--surface-muted)] p-4">
+                    <div className="rounded-xl border border-[var(--border-default)] bg-[var(--surface-muted)] p-4">
                       <div className="flex items-center justify-between gap-3">
                         <div className="space-y-1">
                           <Label htmlFor="load-balance-disable-udp">禁用 UDP</Label>
@@ -764,7 +764,7 @@ export function WorkspacePage() {
                   </div>
                 </>
               ) : null}
-              <details className="rounded-2xl border border-[var(--border-default)] bg-[var(--surface-muted)] p-4 xl:col-span-2">
+              <details className="rounded-xl border border-[var(--border-default)] bg-[var(--surface-muted)] p-4 xl:col-span-2">
                 <summary className="cursor-pointer list-none text-sm font-semibold text-[var(--foreground-primary)]">
                   高级设置
                 </summary>
@@ -772,7 +772,7 @@ export function WorkspacePage() {
                   UDP 默认开启，监听鉴权默认关闭；仅在需要时展开配置。
                 </p>
                 <div className="mt-4 grid gap-3">
-                  <div className="rounded-2xl border border-[var(--border-default)] bg-[var(--surface-base)] p-4">
+                  <div className="rounded-xl border border-[var(--border-default)] bg-[var(--surface-base)] p-4">
                     <div className="flex items-center justify-between gap-3">
                       <div className="space-y-1">
                         <Label htmlFor="advanced-udp-enabled">UDP</Label>
@@ -883,23 +883,32 @@ export function WorkspacePage() {
                   {nodeOptions.map((node) => (
                     <label
                       key={node.id}
-                      className="flex gap-3 rounded-2xl border border-[var(--border-default)] bg-[var(--surface-muted)] p-4"
+                      className={`flex gap-3 rounded-xl border p-3.5 transition-all duration-150 cursor-pointer ${
+                        selectedNodeSet.has(node.id)
+                          ? 'border-[var(--brand-primary)] bg-[var(--surface-raised)] shadow-xs ring-1 ring-[var(--brand-primary)]/30'
+                          : 'border-[var(--border-default)] bg-[var(--surface-raised)] hover:border-[var(--border-hover)]'
+                      }`}
                     >
                       <input
                         type="checkbox"
                         checked={selectedNodeSet.has(node.id)}
                         onChange={(event) => handleToggleNode(node.id, event.target.checked)}
-                        className="mt-1 h-4 w-4 rounded border-[var(--border-default)] accent-[var(--brand-primary)]"
+                        className="mt-1 h-4 w-4 rounded border-[var(--border-default)] accent-[var(--brand-primary)] cursor-pointer"
                       />
-                      <div className="min-w-0 space-y-1">
-                        <p className="text-sm font-semibold text-[var(--foreground-primary)]">
-                          {node.name}
+                      <div className="min-w-0 flex-1 space-y-1">
+                        <div className="flex items-center gap-2">
+                          <span className="px-1.5 py-0.5 text-[10px] font-bold uppercase rounded border border-[var(--border-default)] bg-[var(--surface-muted)] text-[var(--foreground-secondary)]">
+                            {node.type}
+                          </span>
+                          <p className="text-sm font-semibold text-[var(--foreground-primary)] truncate" title={node.name}>
+                            {node.name}
+                          </p>
+                        </div>
+                        <p className="font-mono text-xs text-[var(--foreground-secondary)]">
+                          {node.server}:{node.port}
                         </p>
-                        <p className="text-sm text-[var(--foreground-secondary)]">
-                          {node.type.toUpperCase()} · {node.server}:{node.port}
-                        </p>
-                        <p className="text-xs text-[var(--foreground-secondary)]">
-                          来源：{node.source_config_name} · 标签：{node.tags || '未设置'} · 最近状态：{node.last_test_status}
+                        <p className="text-xs text-[var(--foreground-muted)]">
+                          来源：{node.source_config_name} · 标签：{node.tags || '无'}
                         </p>
                       </div>
                     </label>

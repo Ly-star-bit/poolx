@@ -10,12 +10,20 @@ const variantClasses = {
   info: 'border-[var(--status-info-border)] bg-[var(--status-info-soft)] text-[var(--status-info-foreground)]',
 } as const;
 
+const dotClasses = {
+  success: 'bg-emerald-500',
+  warning: 'bg-amber-500',
+  danger: 'bg-rose-500',
+  info: 'bg-sky-500',
+} as const;
+
 interface StatusBadgeProps {
   label: string;
   variant?: keyof typeof variantClasses;
   className?: string;
   onClick?: () => void;
   disabled?: boolean;
+  dot?: boolean;
 }
 
 export function StatusBadge({
@@ -24,14 +32,27 @@ export function StatusBadge({
   className,
   onClick,
   disabled = false,
+  dot = false,
 }: StatusBadgeProps) {
   const badgeClassName = cn(
-    'inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium tracking-wide',
+    'inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium tracking-wide',
     variantClasses[variant],
     onClick
       ? 'cursor-pointer transition hover:opacity-85 disabled:cursor-not-allowed disabled:opacity-60'
       : undefined,
     className,
+  );
+
+  const content = (
+    <>
+      {dot ? (
+        <span
+          className={cn('mr-1.5 h-1.5 w-1.5 rounded-full', dotClasses[variant])}
+          aria-hidden="true"
+        />
+      ) : null}
+      {label}
+    </>
   );
 
   if (onClick) {
@@ -42,10 +63,10 @@ export function StatusBadge({
         disabled={disabled}
         className={badgeClassName}
       >
-        {label}
+        {content}
       </button>
     );
   }
 
-  return <span className={badgeClassName}>{label}</span>;
+  return <span className={badgeClassName}>{content}</span>;
 }

@@ -1,5 +1,5 @@
-import { RuntimePage } from '@/features/runtime/components/runtime-page';
+import { DashboardOverview } from '@/features/dashboard/components/dashboard-overview';
 
 export default function DashboardPage() {
-  return <RuntimePage />;
+  return <DashboardOverview />;
 }
