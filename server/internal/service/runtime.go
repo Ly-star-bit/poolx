@@ -69,8 +69,9 @@ func StartRuntime(ctx context.Context) (*RuntimeStatus, error) {
 	if strings.TrimSpace(common.KernelType) != KernelTypeMihomo {
 		return nil, fmt.Errorf("当前仅支持启动 Mihomo")
 	}
-	if strings.TrimSpace(common.MihomoBinaryPath) == "" {
-		return nil, fmt.Errorf("请先在系统设置中完成 Mihomo 二进制安装或路径校验")
+	binaryPath := resolveMihomoBinaryPath(common.MihomoBinaryPath)
+	if binaryPath == "" {
+		return nil, fmt.Errorf("未配置或未找到有效的 Mihomo 二进制文件，请先在系统设置中完成配置或安装")
 	}
 
 	runtimeRegistry.mu.Lock()
@@ -131,7 +132,7 @@ func StartRuntime(ctx context.Context) (*RuntimeStatus, error) {
 
 	stdoutWriter := runtimeRegistry.attachLogWriter("stdout")
 	stderrWriter := runtimeRegistry.attachLogWriter("stderr")
-	cmd, err := startMihomoProcess(common.MihomoBinaryPath, workDir, configPath, stdoutWriter, stderrWriter)
+	cmd, err := startMihomoProcess(binaryPath, workDir, configPath, stdoutWriter, stderrWriter)
 	if err != nil {
 		instance.Status = model.KernelInstanceStatusError
 		instance.LastError = fmt.Sprintf("启动 Mihomo 失败: %v", err)

@@ -21,6 +21,7 @@ const (
 )
 
 var runNodeKernelTest = kernelpkg.TestNodeWithMihomo
+var resolveMihomoBinaryPath = kernelpkg.ResolveMihomoBinaryPath
 
 type ProxyNodeListInput struct {
 	Page           int
@@ -166,8 +167,9 @@ func ExecuteNodeTests(ctx context.Context, input NodeTestInput) ([]NodeTestExecu
 	if len(input.NodeIDs) == 0 {
 		return nil, fmt.Errorf("请先选择要测试的节点")
 	}
-	if strings.TrimSpace(common.MihomoBinaryPath) == "" {
-		return nil, fmt.Errorf("请先在系统设置中完成 Mihomo 二进制安装或路径校验")
+	binaryPath := resolveMihomoBinaryPath(common.MihomoBinaryPath)
+	if binaryPath == "" {
+		return nil, fmt.Errorf("未配置或未找到有效的 Mihomo 二进制文件，请在系统设置中完成配置或安装")
 	}
 
 	nodes, err := model.FindProxyNodesByIDs(input.NodeIDs)
@@ -178,7 +180,7 @@ func ExecuteNodeTests(ctx context.Context, input NodeTestInput) ([]NodeTestExecu
 		return nil, fmt.Errorf("未找到可测试的节点")
 	}
 
-	return runNodeTests(ctx, nodes, input.TimeoutMS, input.TestURL)
+	return runNodeTests(ctx, nodes, input.TimeoutMS, input.TestURL, binaryPath)
 }
 
 // ProxyNodeTestFilterInput 用于「按筛选条件全量测速」。
@@ -194,8 +196,9 @@ type ProxyNodeTestFilterInput struct {
 // ExecuteNodeTestsByFilter 按筛选条件取出全部节点并测速。
 // 用于前端「测试筛选全部」入口，不受分页限制。
 func ExecuteNodeTestsByFilter(ctx context.Context, input ProxyNodeTestFilterInput) ([]NodeTestExecution, error) {
-	if strings.TrimSpace(common.MihomoBinaryPath) == "" {
-		return nil, fmt.Errorf("请先在系统设置中完成 Mihomo 二进制安装或路径校验")
+	binaryPath := resolveMihomoBinaryPath(common.MihomoBinaryPath)
+	if binaryPath == "" {
+		return nil, fmt.Errorf("未配置或未找到有效的 Mihomo 二进制文件，请在系统设置中完成配置或安装")
 	}
 
 	nodes, err := ListProxyNodes(ProxyNodeListInput{
@@ -211,12 +214,12 @@ func ExecuteNodeTestsByFilter(ctx context.Context, input ProxyNodeTestFilterInpu
 		return nil, fmt.Errorf("未找到可测试的节点")
 	}
 
-	return runNodeTests(ctx, nodes, input.TimeoutMS, input.TestURL)
+	return runNodeTests(ctx, nodes, input.TimeoutMS, input.TestURL, binaryPath)
 }
 
 // runNodeTests 是 ExecuteNodeTests 与 ExecuteNodeTestsByFilter 共用的 worker-pool 实现。
 // 调用方负责确保 nodes 非空、Mihomo 二进制已就绪。
-func runNodeTests(ctx context.Context, nodes []*model.ProxyNode, timeoutMS int, testURL string) ([]NodeTestExecution, error) {
+func runNodeTests(ctx context.Context, nodes []*model.ProxyNode, timeoutMS int, testURL string, binaryPath string) ([]NodeTestExecution, error) {
 	timeout := normalizeNodeTestTimeout(timeoutMS)
 	normalizedURL := normalizeNodeTestURL(testURL)
 
@@ -237,7 +240,7 @@ func runNodeTests(ctx context.Context, nodes []*model.ProxyNode, timeoutMS int, 
 			defer wg.Done()
 			for index := range jobs {
 				node := nodes[index]
-				execution := buildNodeTestExecution(ctx, node, timeout, normalizedURL)
+				execution := buildNodeTestExecution(ctx, node, timeout, normalizedURL, binaryPath)
 				resultsCh <- indexedExecution{index: index, item: execution}
 			}
 		}()
@@ -268,6 +271,7 @@ func runNodeTests(ctx context.Context, nodes []*model.ProxyNode, timeoutMS int, 
 }
 
 type metadataNodeTestInput struct {
+	BinaryPath   string
 	NodeID       int
 	Name         string
 	Server       string
@@ -290,7 +294,7 @@ func executeMetadataNodeTest(ctx context.Context, input metadataNodeTestInput) N
 	}
 
 	result, err := runNodeKernelTest(ctx, kernelpkg.MihomoNodeTestInput{
-		BinaryPath:   common.MihomoBinaryPath,
+		BinaryPath:   input.BinaryPath,
 		ProxyName:    input.Name,
 		MetadataJSON: input.MetadataJSON,
 		TestURL:      input.TestURL,
@@ -313,8 +317,9 @@ func executeMetadataNodeTest(ctx context.Context, input metadataNodeTestInput) N
 	return execution
 }
 
-func buildNodeTestExecution(ctx context.Context, node *model.ProxyNode, timeout time.Duration, testURL string) NodeTestExecution {
+func buildNodeTestExecution(ctx context.Context, node *model.ProxyNode, timeout time.Duration, testURL string, binaryPath string) NodeTestExecution {
 	return executeMetadataNodeTest(ctx, metadataNodeTestInput{
+		BinaryPath:   binaryPath,
 		NodeID:       node.ID,
 		Name:         node.Name,
 		Server:       node.Server,

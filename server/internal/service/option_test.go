@@ -2,7 +2,9 @@ package service
 
 import (
 	"net"
+	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 
 	"poolx/internal/model"
@@ -21,6 +23,20 @@ func (f *fakeGeoIPProvider) GetGeoInfo(ip net.IP) (*geoip.GeoInfo, error) { retu
 func (f *fakeGeoIPProvider) UpdateDatabase() error { return nil }
 
 func (f *fakeGeoIPProvider) Close() error { return nil }
+
+func createFakeMihomoBinary(t *testing.T) string {
+	t.Helper()
+	tempDir := t.TempDir()
+	binName := "mihomo"
+	if runtime.GOOS == "windows" {
+		binName += ".exe"
+	}
+	target := filepath.Join(tempDir, binName)
+	if err := os.WriteFile(target, []byte("fake"), 0o755); err != nil {
+		t.Fatalf("write fake binary: %v", err)
+	}
+	return target
+}
 
 func setupServiceTestDB(t *testing.T) {
 	t.Helper()

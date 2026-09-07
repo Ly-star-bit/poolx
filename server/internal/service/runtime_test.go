@@ -24,7 +24,7 @@ func TestStartRuntimeRejectsOccupiedListenerPort(t *testing.T) {
 	originalBinaryPath := common.MihomoBinaryPath
 	originalStarter := startMihomoProcess
 	common.KernelType = KernelTypeMihomo
-	common.MihomoBinaryPath = "/tmp/fake-mihomo"
+	common.MihomoBinaryPath = createFakeMihomoBinary(t)
 	startCalled := false
 	startMihomoProcess = func(binaryPath string, workDir string, configPath string, stdout io.Writer, stderr io.Writer) (*exec.Cmd, error) {
 		startCalled = true
@@ -89,7 +89,7 @@ func TestStartRuntimeIncludesRecentLogsWhenControllerWaitFails(t *testing.T) {
 	originalStarter := startMihomoProcess
 	originalWaiter := waitForMihomoControllerReady
 	common.KernelType = KernelTypeMihomo
-	common.MihomoBinaryPath = "/tmp/fake-mihomo"
+	common.MihomoBinaryPath = createFakeMihomoBinary(t)
 	startMihomoProcess = func(binaryPath string, workDir string, configPath string, stdout io.Writer, stderr io.Writer) (*exec.Cmd, error) {
 		var cmd *exec.Cmd
 		if runtime.GOOS == "windows" {

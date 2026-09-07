@@ -21,7 +21,7 @@ func TestExecuteNodeTestsPersistsResult(t *testing.T) {
 	})
 
 	originalBinaryPath := common.MihomoBinaryPath
-	common.MihomoBinaryPath = "/tmp/fake-mihomo"
+	common.MihomoBinaryPath = createFakeMihomoBinary(t)
 	t.Cleanup(func() {
 		common.MihomoBinaryPath = originalBinaryPath
 	})
@@ -80,7 +80,7 @@ func TestExecuteNodeTestsPersistsFailureResult(t *testing.T) {
 	})
 
 	originalBinaryPath := common.MihomoBinaryPath
-	common.MihomoBinaryPath = "/tmp/fake-mihomo"
+	common.MihomoBinaryPath = createFakeMihomoBinary(t)
 	t.Cleanup(func() {
 		common.MihomoBinaryPath = originalBinaryPath
 	})
@@ -140,7 +140,7 @@ func TestExecuteNodeTestsAlwaysRunsKernelProbe(t *testing.T) {
 	})
 
 	originalBinaryPath := common.MihomoBinaryPath
-	common.MihomoBinaryPath = "/tmp/fake-mihomo"
+	common.MihomoBinaryPath = createFakeMihomoBinary(t)
 	t.Cleanup(func() {
 		common.MihomoBinaryPath = originalBinaryPath
 	})

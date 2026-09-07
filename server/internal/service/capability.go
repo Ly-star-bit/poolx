@@ -1,8 +1,8 @@
 package service
 
 import (
-	"os"
 	"poolx/internal/pkg/common"
+	kernelpkg "poolx/internal/pkg/kernel"
 	"strings"
 )
 
@@ -24,13 +24,16 @@ type KernelCapability struct {
 }
 
 func GetKernelCapability() *KernelCapability {
-	binaryPath := strings.TrimSpace(common.MihomoBinaryPath)
-	binaryConfigured := binaryPath != ""
+	configuredPath := strings.TrimSpace(common.MihomoBinaryPath)
+	resolvedPath := kernelpkg.ResolveMihomoBinaryPath(configuredPath)
+
+	binaryConfigured := configuredPath != "" || resolvedPath != ""
 	binaryExists := false
-	if binaryConfigured {
-		if info, err := os.Stat(binaryPath); err == nil && !info.IsDir() {
-			binaryExists = true
-		}
+
+	if configuredPath != "" {
+		binaryExists = kernelpkg.ResolveExecutablePath(configuredPath) != ""
+	} else {
+		binaryExists = resolvedPath != ""
 	}
 
 	message := "当前内核能力正常。"

@@ -5,6 +5,7 @@ import (
 	"net"
 	"poolx/internal/model"
 	"poolx/internal/pkg/common"
+	kernelpkg "poolx/internal/pkg/kernel"
 	"poolx/internal/pkg/utils"
 	"poolx/internal/pkg/utils/geoip"
 	"regexp"
@@ -107,8 +108,12 @@ func UpdateEditableOption(option model.Option) error {
 			return err
 		}
 	case "MihomoBinaryPath":
-		if strings.TrimSpace(option.Value) == "" {
+		val := strings.TrimSpace(option.Value)
+		if val == "" {
 			return fmt.Errorf("MihomoBinaryPath cannot be empty")
+		}
+		if resolved := kernelpkg.ResolveExecutablePath(val); resolved != "" {
+			option.Value = resolved
 		}
 	case "MihomoBinarySource":
 		if err := validateMihomoBinarySource(option.Value); err != nil {
