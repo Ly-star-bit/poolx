@@ -4,13 +4,13 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 )
 
 func TestStartMihomoProcessUsesAbsolutePaths(t *testing.T) {
 	tempDir := t.TempDir()
-	binaryPath := filepath.Join(tempDir, "fake-mihomo.sh")
 	argsLogPath := filepath.Join(tempDir, "args.log")
 	configPath := filepath.Join(tempDir, "config.yaml")
 	workDir := filepath.Join(tempDir, "runtime")
@@ -22,9 +22,19 @@ func TestStartMihomoProcessUsesAbsolutePaths(t *testing.T) {
 		t.Fatalf("write config: %v", err)
 	}
 
-	script := "#!/bin/sh\nprintf '%s\\n' \"$@\" > " + shellQuote(argsLogPath) + "\n"
-	if err := os.WriteFile(binaryPath, []byte(script), 0o755); err != nil {
-		t.Fatalf("write fake mihomo: %v", err)
+	var binaryPath string
+	if runtime.GOOS == "windows" {
+		binaryPath = filepath.Join(tempDir, "fake-mihomo.cmd")
+		script := "@echo off\r\n:loop\r\nif \"%~1\"==\"\" goto end\r\necho %~1>> \"" + argsLogPath + "\"\r\nshift\r\ngoto loop\r\n:end\r\n"
+		if err := os.WriteFile(binaryPath, []byte(script), 0o755); err != nil {
+			t.Fatalf("write fake mihomo: %v", err)
+		}
+	} else {
+		binaryPath = filepath.Join(tempDir, "fake-mihomo.sh")
+		script := "#!/bin/sh\nprintf '%s\\n' \"$@\" > " + shellQuote(argsLogPath) + "\n"
+		if err := os.WriteFile(binaryPath, []byte(script), 0o755); err != nil {
+			t.Fatalf("write fake mihomo: %v", err)
+		}
 	}
 
 	cmd, err := StartMihomoProcess(binaryPath, workDir, configPath, io.Discard, io.Discard)
@@ -39,9 +49,15 @@ func TestStartMihomoProcessUsesAbsolutePaths(t *testing.T) {
 	if err != nil {
 		t.Fatalf("read args log: %v", err)
 	}
-	lines := strings.Split(strings.TrimSpace(string(content)), "\n")
+	var lines []string
+	for _, rawLine := range strings.Split(string(content), "\n") {
+		trimmed := strings.TrimSpace(rawLine)
+		if trimmed != "" {
+			lines = append(lines, trimmed)
+		}
+	}
 	if len(lines) != 4 {
-		t.Fatalf("unexpected args logged: %q", string(content))
+		t.Fatalf("unexpected args logged: %q (parsed %d lines: %#v)", string(content), len(lines), lines)
 	}
 
 	expectedWorkDir, err := filepath.Abs(workDir)

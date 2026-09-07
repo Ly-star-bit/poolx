@@ -46,11 +46,12 @@ This project provides a clean and user-friendly UI for efficiently managing and 
 
 ## Features
 
-- Web-based management panel with authentication and system settings
-- Node pool management with testing, filtering, and cross-workspace reuse
-- Workspace-based port configuration for building proxy pool entry points
-- Multiple port listeners, each mapped to a different proxy pool configuration
-- Built-in zashboard for extended monitoring and management of the core
+- **Web Management Console**: Built-in authentication, role control, system settings, and audit logs.
+- **Multi-Source Import**: Import via local files or instant subscription URLs with dual-layer fingerprint deduplication.
+- **Node Pool Governance**: Real traffic latency testing via kernel, batch tagging, region-based grouping, and keyword filtering.
+- **Workspace Orchestration**: Build custom proxy pool entry points with flexible routing strategies (round-robin, fallback, load-balance).
+- **Multi-Port Listeners**: Configure multiple local ports, each mapped to isolated proxy pools and rules.
+- **Built-in Zashboard**: Embedded Clash dashboard connecting to the core through authenticated backend proxy.
 
 ---
 
@@ -125,9 +126,23 @@ SQLITE_PATH=/path/to/poolx.db \
 Access URL: http://localhost:3000
 
 Default credentials:
-* Username: root
-* Password: 123456
+* Username: `root`
+* Password: `123456`
 
+### Source Build & Development
+
+**Prerequisites**: Go 1.24+, Node.js 18+, pnpm
+
+One-shot build on Windows:
+```powershell
+cd server
+.\build.ps1                 # Full build (web + zashboard + poolx.exe)
+.\build.ps1 -SkipFrontend   # Skip frontend, compile Go binary and run all tests
+```
+
+Local development:
+- **Backend**: `cd server && go run ./cmd/server` (default: `http://127.0.0.1:3000`)
+- **Frontend**: `cd server/web && pnpm dev` (default: `http://127.0.0.1:3001`, proxies to backend)
 
 ## Configuration
 
@@ -143,7 +158,6 @@ For runtime parameters, deployment methods, and system configuration, refer to:
 * [docs/app-config.md](./docs/app-config.md)
 * [docs/deployment.md](./docs/deployment.md)
 
-
 ## License
 
-This project is licensed under the [Apache License 2.0](./LICENSE) ￼.
+This project is licensed under the [Apache License 2.0](./LICENSE).

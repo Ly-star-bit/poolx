@@ -6,6 +6,7 @@ import (
 	"io"
 	"net"
 	"os/exec"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -17,6 +18,7 @@ import (
 func TestStartRuntimeRejectsOccupiedListenerPort(t *testing.T) {
 	setupServiceTestDB(t)
 	resetRuntimeRegistryForTest()
+	t.Cleanup(SetRuntimeWorkDirForTest(t.TempDir()))
 
 	originalKernelType := common.KernelType
 	originalBinaryPath := common.MihomoBinaryPath
@@ -80,6 +82,7 @@ func TestStartRuntimeRejectsOccupiedListenerPort(t *testing.T) {
 func TestStartRuntimeIncludesRecentLogsWhenControllerWaitFails(t *testing.T) {
 	setupServiceTestDB(t)
 	resetRuntimeRegistryForTest()
+	t.Cleanup(SetRuntimeWorkDirForTest(t.TempDir()))
 
 	originalKernelType := common.KernelType
 	originalBinaryPath := common.MihomoBinaryPath
@@ -88,7 +91,12 @@ func TestStartRuntimeIncludesRecentLogsWhenControllerWaitFails(t *testing.T) {
 	common.KernelType = KernelTypeMihomo
 	common.MihomoBinaryPath = "/tmp/fake-mihomo"
 	startMihomoProcess = func(binaryPath string, workDir string, configPath string, stdout io.Writer, stderr io.Writer) (*exec.Cmd, error) {
-		cmd := exec.Command("/bin/sh", "-c", "echo boot failed 1>&2; exit 1")
+		var cmd *exec.Cmd
+		if runtime.GOOS == "windows" {
+			cmd = exec.Command("cmd.exe", "/c", "echo boot failed 1>&2 & exit 1")
+		} else {
+			cmd = exec.Command("/bin/sh", "-c", "echo boot failed 1>&2; exit 1")
+		}
 		cmd.Stdout = stdout
 		cmd.Stderr = stderr
 		if err := cmd.Start(); err != nil {

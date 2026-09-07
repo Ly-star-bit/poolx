@@ -57,7 +57,7 @@ if (-not $SkipTest) {
     Step '2/5  go test'
     Push-Location $serverDir
     try {
-        go test ./internal/pkg/proxy/... ./internal/pkg/runtimeconfig/... ./internal/service/...
+        go test ./...
         if ($LASTEXITCODE -ne 0) { Fail 'go test failed' }
     } finally { Pop-Location }
 } else {

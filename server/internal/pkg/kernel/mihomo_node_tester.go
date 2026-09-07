@@ -84,7 +84,7 @@ func TestNodeWithMihomo(ctx context.Context, input MihomoNodeTestInput) (*Mihomo
 		return nil, fmt.Errorf("创建临时测试目录失败: %v", err)
 	}
 	defer func() {
-		_ = os.RemoveAll(tempDir)
+		safeRemoveTempDir(tempDir)
 	}()
 
 	configPath := filepath.Join(tempDir, "config.yaml")
@@ -281,4 +281,16 @@ func stringValue(value any) string {
 	default:
 		return fmt.Sprintf("%v", value)
 	}
+}
+
+func safeRemoveTempDir(dir string) {
+	if dir == "" {
+		return
+	}
+	if err := os.RemoveAll(dir); err == nil {
+		return
+	}
+	// 在 Windows 等系统上，进程退出后文件句柄锁可能存在短暂释放延迟，等待 50ms 重试一次
+	time.Sleep(50 * time.Millisecond)
+	_ = os.RemoveAll(dir)
 }

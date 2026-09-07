@@ -193,6 +193,12 @@ export function RuntimePage() {
             >
               打开 Clash 控制台
             </SecondaryButton>
+            <SecondaryButton
+              type="button"
+              onClick={() => setAutoRefresh((value) => !value)}
+            >
+              {autoRefresh ? '暂停刷新' : '自动刷新'}
+            </SecondaryButton>
           </div>
         }
       />

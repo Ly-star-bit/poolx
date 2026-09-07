@@ -90,19 +90,11 @@ func TestInspectMihomoBinary(t *testing.T) {
 	setupServiceTestDB(t)
 
 	targetDir := t.TempDir()
-	targetPath := filepath.Join(targetDir, "mihomo-existing")
 	fileName, content := testExecutableFile("Mihomo Meta v1.19.22")
+	targetPath := filepath.Join(targetDir, fileName)
 	if err := os.WriteFile(targetPath, content, 0o755); err != nil {
 		t.Fatalf("write existing binary: %v", err)
 	}
-	if runtime.GOOS == "windows" && !strings.HasSuffix(targetPath, ".exe") {
-		renamedPath := targetPath + ".exe"
-		if err := os.Rename(targetPath, renamedPath); err != nil {
-			t.Fatalf("rename existing binary: %v", err)
-		}
-		targetPath = renamedPath
-	}
-	fileName = filepath.Base(targetPath)
 
 	result, err := InspectMihomoBinary(context.Background(), targetPath)
 	if err != nil {

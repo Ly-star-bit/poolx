@@ -339,6 +339,9 @@ func TestBuildLatestServerReleaseViewIncludesUpgradeLogs(t *testing.T) {
 }
 
 func TestScheduleServerUpgradeUsesDownloadedBinaryValidation(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("automatic upgrade is not supported on windows")
+	}
 	originalVersion := common.Version
 	originalClient := UpdateHTTPClientForTest()
 	originalExecutor := ServerBinaryUpgradeExecutorForTest()

@@ -337,6 +337,33 @@ func GetRuntimeLogs(afterSeq int64, limit int) (*RuntimeLogList, error) {
 	return &RuntimeLogList{Items: items}, nil
 }
 
+var (
+	runtimeWorkDirOverride   string
+	runtimeWorkDirOverrideMu sync.RWMutex
+)
+
+// SetRuntimeWorkDirForTest overrides the runtime working directory for isolated testing.
+func SetRuntimeWorkDirForTest(dir string) func() {
+	runtimeWorkDirOverrideMu.Lock()
+	runtimeWorkDirOverride = dir
+	runtimeWorkDirOverrideMu.Unlock()
+	return func() {
+		runtimeWorkDirOverrideMu.Lock()
+		runtimeWorkDirOverride = ""
+		runtimeWorkDirOverrideMu.Unlock()
+	}
+}
+
+func defaultRuntimeWorkDir(kernelType string) string {
+	runtimeWorkDirOverrideMu.RLock()
+	override := runtimeWorkDirOverride
+	runtimeWorkDirOverrideMu.RUnlock()
+	if strings.TrimSpace(override) != "" {
+		return filepath.Join(override, kernelType)
+	}
+	return filepath.Join("data", "runtime", kernelType)
+}
+
 func ensureKernelInstance() (*model.KernelInstance, error) {
 	instance, err := model.GetKernelInstanceByType(common.KernelType)
 	if err == nil {
@@ -345,7 +372,7 @@ func ensureKernelInstance() (*model.KernelInstance, error) {
 	if !errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, err
 	}
-	workDir := filepath.Join("data", "runtime", common.KernelType)
+	workDir := defaultRuntimeWorkDir(common.KernelType)
 	configPath := filepath.Join(workDir, runtimeConfigFileName)
 	instance = &model.KernelInstance{
 		KernelType:        common.KernelType,
@@ -375,7 +402,7 @@ func buildFinalRuntimeConfig(existingSecret string, persistSnapshots bool) (*run
 	if len(enabled) == 0 {
 		return nil, "", "", "", fmt.Errorf("当前没有加入最终配置的端口配置，无法启动 Mihomo")
 	}
-	workDir := filepath.Join("data", "runtime", common.KernelType)
+	workDir := defaultRuntimeWorkDir(common.KernelType)
 	configPath := filepath.Join(workDir, runtimeConfigFileName)
 	secret := strings.TrimSpace(existingSecret)
 	if secret == "" {

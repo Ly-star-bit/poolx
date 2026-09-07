@@ -392,33 +392,34 @@ export function NodesPage() {
         </div>
       </AppCard>
 
-      {/*暂时不开放节点标签功能, 注释掉相关UI和接口调用, 后续根据需求再完善, 以下内容不要删除*/}
-      {/*<AppCard*/}
-      {/*  title="节点标签"*/}
-      {/*  description="支持为当前选择的节点批量打标签，使用逗号分隔。"*/}
-      {/*>*/}
-      {/*  <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto]">*/}
-      {/*    <ResourceInput*/}
-      {/*      value={tagsInput}*/}
-      {/*      onChange={(event) => setTagsInput(event.target.value)}*/}
-      {/*      placeholder="例如：hk, premium, low-latency"*/}
-      {/*    />*/}
-      {/*    <PrimaryButton*/}
-      {/*      type="button"*/}
-      {/*      onClick={() => {*/}
-      {/*        if (selectedIds.length === 0) {*/}
-      {/*          setFeedback({ tone: 'danger', message: '请先选择至少一个节点。' })*/}
-      {/*          return*/}
-      {/*        }*/}
-      {/*        setFeedback(null)*/}
-      {/*        tagsMutation.mutate(selectedIds)*/}
-      {/*      }}*/}
-      {/*      disabled={tagsMutation.isPending}*/}
-      {/*    >*/}
-      {/*      {tagsMutation.isPending ? '保存中...' : '保存标签'}*/}
-      {/*    </PrimaryButton>*/}
-      {/*  </div>*/}
-      {/*</AppCard>*/}
+      {selectedIds.length > 0 ? (
+        <AppCard
+          title="节点标签"
+          description="支持为当前选择的节点批量打标签，使用逗号分隔。"
+        >
+          <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto]">
+            <ResourceInput
+              value={tagsInput}
+              onChange={(event) => setTagsInput(event.target.value)}
+              placeholder="例如：hk, premium, low-latency"
+            />
+            <PrimaryButton
+              type="button"
+              onClick={() => {
+                if (selectedIds.length === 0) {
+                  setFeedback({ tone: 'danger', message: '请先选择至少一个节点。' });
+                  return;
+                }
+                setFeedback(null);
+                tagsMutation.mutate(selectedIds);
+              }}
+              disabled={tagsMutation.isPending}
+            >
+              {tagsMutation.isPending ? '保存中...' : '保存标签'}
+            </PrimaryButton>
+          </div>
+        </AppCard>
+      ) : null}
 
       <AppCard
         title="节点列表"

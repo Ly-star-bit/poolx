@@ -25,7 +25,7 @@ func setWebRouter(router *gin.Engine, assetFS fs.FS, buildDir string, indexPage 
 
 	router.Use(middleware.GlobalWebRateLimit())
 	fileDownloadRoute := router.Group("/")
-	fileDownloadRoute.GET("/upload/:file", middleware.DownloadRateLimit(), controller.DownloadFile)
+	fileDownloadRoute.GET("/upload/:file", middleware.DownloadRateLimit(), handler.DownloadFile)
 	router.Use(normalizeStaticExportDataNavigation())
 	router.Use(middleware.Cache())
 	zashboardRoute := router.Group("/zashboard")
