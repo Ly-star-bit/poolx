@@ -1,6 +1,7 @@
 package app
 
 import (
+	"context"
 	"fmt"
 	"io/fs"
 	"log/slog"
@@ -12,6 +13,7 @@ import (
 	"poolx/internal/router"
 	"poolx/internal/service"
 	"strconv"
+	"time"
 
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-contrib/sessions/cookie"
@@ -78,12 +80,32 @@ func RunServer(assetFS fs.FS, buildDir string, indexPage []byte, zashboardDir st
 		"redis_enabled", common.RedisEnabled,
 		"upload_path", common.UploadPath,
 		"log_dir", valueOrDefault(*common.LogDir, "stdout"),
+		"kernel_auto_start", common.KernelAutoStart,
 	)
+	tryAutoStartKernel()
 	slog.Info("server listening", "address", fmt.Sprintf(":%s", port))
 	err = server.Run(":" + port)
 	if err != nil {
 		slog.Error("server run failed", "error", err)
 	}
+}
+
+func tryAutoStartKernel() {
+	if !common.KernelAutoStart {
+		return
+	}
+	go func() {
+		time.Sleep(500 * time.Millisecond)
+		slog.Info("kernel auto-start enabled, initiating Mihomo startup sequence...")
+		status, err := service.StartRuntime(context.Background())
+		if err != nil {
+			slog.Warn("kernel auto-start skipped or failed", "error", err)
+			_ = service.AppLog.Push(model.AppLogClassificationSystem, model.AppLogLevelWarn, fmt.Sprintf("内核自动启动未成功: %v", err))
+			return
+		}
+		slog.Info("kernel auto-started successfully", "running", status.Running, "listeners", status.ListenerCount)
+		_ = service.AppLog.Push(model.AppLogClassificationSystem, model.AppLogLevelInfo, fmt.Sprintf("内核已随服务启动自动运行，挂载监听端口数: %d", status.ListenerCount))
+	}()
 }
 
 func valueOrDefault(value string, fallback string) string {

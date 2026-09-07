@@ -53,6 +53,7 @@ func InitOptionMap() {
 	common.OptionMap["ClashExternalController"] = common.ClashExternalController
 	common.OptionMap["ClashMode"] = common.ClashMode
 	common.OptionMap["ClashSecret"] = common.ClashSecret
+	common.OptionMap["KernelAutoStart"] = strconv.FormatBool(common.KernelAutoStart)
 	common.OptionMap["GeoIPProvider"] = common.GeoIPProvider
 	common.OptionMap["GitHubClientId"] = ""
 	common.OptionMap["GitHubClientSecret"] = ""
@@ -176,6 +177,10 @@ func updateOptionMap(key string, value string) {
 	case "ClashSecret":
 		if strings.TrimSpace(value) != "" {
 			common.ClashSecret = value
+		}
+	case "KernelAutoStart":
+		if common.AutoStartKernel == nil || !*common.AutoStartKernel {
+			common.KernelAutoStart = value == "true"
 		}
 	case "GeoIPProvider":
 		common.GeoIPProvider = value

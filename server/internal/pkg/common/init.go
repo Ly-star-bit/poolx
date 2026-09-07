@@ -10,10 +10,11 @@ import (
 )
 
 var (
-	Port         = flag.Int("port", 3000, "the listening port")
-	PrintVersion = flag.Bool("version", false, "print version and exit")
-	PrintHelp    = flag.Bool("help", false, "print help and exit")
-	LogDir       = flag.String("log-dir", "", "specify the log directory")
+	Port            = flag.Int("port", 3000, "the listening port")
+	PrintVersion    = flag.Bool("version", false, "print version and exit")
+	PrintHelp       = flag.Bool("help", false, "print help and exit")
+	LogDir          = flag.String("log-dir", "", "specify the log directory")
+	AutoStartKernel = flag.Bool("auto-start-kernel", false, "automatically start the proxy kernel on server startup")
 )
 
 // UploadPath Maybe override by ENV_VAR
@@ -21,7 +22,7 @@ var UploadPath = "upload"
 
 func printHelp() {
 	fmt.Println("PoolX " + Version + " - Proxy Kernel Control Plane backend.")
-	fmt.Println("Usage: poolx [--port <port>] [--log-dir <log directory>] [--version] [--help]")
+	fmt.Println("Usage: poolx [--port <port>] [--log-dir <log directory>] [--auto-start-kernel] [--version] [--help]")
 }
 
 func init() {
@@ -38,6 +39,14 @@ func init() {
 	if *PrintHelp {
 		printHelp()
 		os.Exit(0)
+	}
+
+	if *AutoStartKernel {
+		KernelAutoStart = true
+	} else if env := os.Getenv("POOLX_KERNEL_AUTO_START"); env != "" {
+		KernelAutoStart = env == "true" || env == "1"
+	} else if env := os.Getenv("KERNEL_AUTO_START"); env != "" {
+		KernelAutoStart = env == "true" || env == "1"
 	}
 
 	if os.Getenv("SESSION_SECRET") != "" {

@@ -32,6 +32,7 @@ var ClashAllowLAN = false
 var ClashExternalController = DefaultClashExternalController
 var ClashMode = DefaultClashMode
 var ClashSecret = DefaultClashSecret
+var KernelAutoStart = false
 var Footer = ""
 var HomePageLink = ""
 

@@ -56,6 +56,7 @@ const defaultSystemFields = {
   MihomoBinaryPath: '',
   MihomoBinaryVersion: '',
   MihomoBinarySource: '',
+  KernelAutoStart: false,
   ClashAllowLAN: false,
   ClashExternalController: '127.0.0.1:19090',
   ClashMode: 'rule',
@@ -279,6 +280,7 @@ export function SettingsPage() {
       MihomoBinaryPath: optionMap.MihomoBinaryPath ?? '',
       MihomoBinaryVersion: optionMap.MihomoBinaryVersion ?? '',
       MihomoBinarySource: optionMap.MihomoBinarySource ?? '',
+      KernelAutoStart: toBoolean(optionMap.KernelAutoStart, false),
       ClashAllowLAN: toBoolean(optionMap.ClashAllowLAN, false),
       ClashExternalController:
         optionMap.ClashExternalController ?? '127.0.0.1:19090',
@@ -624,6 +626,7 @@ export function SettingsPage() {
       await saveOptionEntries(
         [
           ['KernelType', systemFields.KernelType],
+          ['KernelAutoStart', String(systemFields.KernelAutoStart)],
           ['ClashAllowLAN', String(systemFields.ClashAllowLAN)],
           ['ClashExternalController', systemFields.ClashExternalController.trim()],
           ['ClashMode', systemFields.ClashMode.trim()],
@@ -1230,6 +1233,17 @@ export function SettingsPage() {
                   setSystemFields((previous) => ({
                     ...previous,
                     ClashAllowLAN: checked,
+                  }))
+                }
+              />
+              <ToggleField
+                label="服务自启内核 (KernelAutoStart)"
+                description="开启后，当 PoolX 服务端启动或重启时，会自动加载工作台配置并启动 Mihomo 内核。"
+                checked={systemFields.KernelAutoStart}
+                onChange={(checked) =>
+                  setSystemFields((previous) => ({
+                    ...previous,
+                    KernelAutoStart: checked,
                   }))
                 }
               />

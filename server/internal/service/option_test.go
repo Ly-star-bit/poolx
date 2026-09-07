@@ -213,3 +213,31 @@ func TestUpdateEditableOptionRejectsInvalidClashExternalController(t *testing.T)
 		t.Fatal("expected invalid ClashExternalController to fail")
 	}
 }
+
+func TestUpdateEditableOptionAppliesKernelAutoStart(t *testing.T) {
+	setupServiceTestDB(t)
+
+	originalAutoStart := common.KernelAutoStart
+	t.Cleanup(func() {
+		common.KernelAutoStart = originalAutoStart
+	})
+
+	if err := UpdateEditableOption(model.Option{
+		Key:   "KernelAutoStart",
+		Value: "true",
+	}); err != nil {
+		t.Fatalf("update KernelAutoStart: %v", err)
+	}
+
+	if !common.KernelAutoStart {
+		t.Fatal("expected KernelAutoStart to be true")
+	}
+
+	if err := UpdateEditableOption(model.Option{
+		Key:   "KernelAutoStart",
+		Value: "invalid",
+	}); err == nil {
+		t.Fatal("expected invalid KernelAutoStart to fail")
+	}
+}
+

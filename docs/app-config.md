@@ -32,6 +32,7 @@ go run . --port 3000 --log-dir ./logs
 | --- | --- | --- |
 | `--port` | 指定 Server 监听端口 | `3000` |
 | `--log-dir` | 指定日志目录 | 空 |
+| `--auto-start-kernel` | 服务启动后自动拉起代理内核 | `false` |
 | `--version` | 输出当前版本后退出 | `false` |
 | `--help` | 输出帮助信息后退出 | `false` |
 
@@ -47,6 +48,7 @@ go run . --port 3000 --log-dir ./logs
 | `SQL_DSN` | 兼容旧命名的 PostgreSQL DSN，优先级低于 `DSN` | 空 |
 | `REDIS_CONN_STRING` | Redis 连接串 | 空 |
 | `UPLOAD_PATH` | 上传目录 | `upload` |
+| `POOLX_KERNEL_AUTO_START` | 服务启动时是否自动拉起代理内核 | `false` |
 
 说明：
 
@@ -69,6 +71,7 @@ go run . --port 3000 --log-dir ./logs
 | `MihomoBinaryPath` | Mihomo 二进制安装路径 | 空 |
 | `MihomoBinaryVersion` | 最近一次校验通过的 Mihomo 版本输出 | 空 |
 | `MihomoBinarySource` | Mihomo 二进制来源，支持 `upload` / `download` | 空 |
+| `KernelAutoStart` | 服务启动时是否自动拉起代理内核 | `false` |
 | `ClashAllowLAN` | 最终 Mihomo 配置中的 `allow-lan` | `false` |
 | `ClashExternalController` | 最终 Mihomo 配置中的 `external-controller` | `127.0.0.1:19090` |
 | `ClashMode` | 最终 Mihomo 配置中的 `mode`，支持 `rule` / `global` / `direct` | `rule` |

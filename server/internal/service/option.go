@@ -139,6 +139,10 @@ func UpdateEditableOption(option model.Option) error {
 		if option.Value != "true" && option.Value != "false" {
 			return fmt.Errorf("ClashAllowLAN must be true or false")
 		}
+	case "KernelAutoStart":
+		if option.Value != "true" && option.Value != "false" {
+			return fmt.Errorf("KernelAutoStart must be true or false")
+		}
 	case "ClashExternalController":
 		if _, err := normalizeControllerAddress(option.Value); err != nil {
 			return err
