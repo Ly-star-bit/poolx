@@ -86,6 +86,9 @@ func ListEditableOptions() []*model.Option {
 }
 
 func UpdateEditableOption(option model.Option) error {
+	if option.Key == "SessionSecret" {
+		return fmt.Errorf("SessionSecret cannot be modified directly")
+	}
 	switch option.Key {
 	case "GitHubOAuthEnabled":
 		if option.Value == "true" && common.GitHubClientId == "" {

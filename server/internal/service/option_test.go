@@ -241,3 +241,63 @@ func TestUpdateEditableOptionAppliesKernelAutoStart(t *testing.T) {
 	}
 }
 
+func TestSessionSecretPersistenceAndRestart(t *testing.T) {
+	setupServiceTestDB(t)
+
+	originalEnv := os.Getenv("SESSION_SECRET")
+	originalSecret := common.SessionSecret
+	_ = os.Unsetenv("SESSION_SECRET")
+	t.Cleanup(func() {
+		if originalEnv != "" {
+			_ = os.Setenv("SESSION_SECRET", originalEnv)
+		} else {
+			_ = os.Unsetenv("SESSION_SECRET")
+		}
+		common.SessionSecret = originalSecret
+	})
+
+	common.OptionMapRWMutex.RLock()
+	savedSecret := common.OptionMap["SessionSecret"]
+	common.OptionMapRWMutex.RUnlock()
+
+	if savedSecret == "" {
+		t.Fatal("expected SessionSecret to be persisted in OptionMap")
+	}
+	if savedSecret != common.SessionSecret {
+		t.Fatalf("expected OptionMap SessionSecret (%s) to match common.SessionSecret (%s)", savedSecret, common.SessionSecret)
+	}
+
+	// Simulate server restart: common.SessionSecret is initialized to a new UUID
+	common.SessionSecret = "new-random-uuid-on-restart"
+	model.InitOptionMap()
+
+	if common.SessionSecret != savedSecret {
+		t.Fatalf("expected common.SessionSecret to be restored to %s, got %s", savedSecret, common.SessionSecret)
+	}
+
+	// Verify ListEditableOptions does not expose SessionSecret
+	for _, opt := range ListEditableOptions() {
+		if opt.Key == "SessionSecret" {
+			t.Fatal("ListEditableOptions must not expose SessionSecret")
+		}
+	}
+
+	// Verify UpdateEditableOption rejects SessionSecret modification
+	err := UpdateEditableOption(model.Option{
+		Key:   "SessionSecret",
+		Value: "hacked",
+	})
+	if err == nil {
+		t.Fatal("expected UpdateEditableOption to reject modifying SessionSecret")
+	}
+
+	// Verify SESSION_SECRET env takes precedence
+	_ = os.Setenv("SESSION_SECRET", "env-override-secret")
+	common.SessionSecret = "env-override-secret"
+	model.InitOptionMap()
+	if common.SessionSecret != "env-override-secret" {
+		t.Fatalf("expected env var to take precedence, got %s", common.SessionSecret)
+	}
+}
+
+

@@ -1,6 +1,7 @@
 package model
 
 import (
+	"os"
 	"poolx/internal/pkg/common"
 	"strconv"
 	"strings"
@@ -13,6 +14,9 @@ type Option struct {
 
 func AllOption() ([]*Option, error) {
 	var options []*Option
+	if DB == nil {
+		return options, nil
+	}
 	var err error
 	err = DB.Find(&options).Error
 	return options, err
@@ -54,6 +58,7 @@ func InitOptionMap() {
 	common.OptionMap["ClashMode"] = common.ClashMode
 	common.OptionMap["ClashSecret"] = common.ClashSecret
 	common.OptionMap["KernelAutoStart"] = strconv.FormatBool(common.KernelAutoStart)
+	common.OptionMap["SessionSecret"] = ""
 	common.OptionMap["GeoIPProvider"] = common.GeoIPProvider
 	common.OptionMap["GitHubClientId"] = ""
 	common.OptionMap["GitHubClientSecret"] = ""
@@ -73,9 +78,25 @@ func InitOptionMap() {
 	common.OptionMap["CriticalRateLimitNum"] = strconv.Itoa(common.CriticalRateLimitNum)
 	common.OptionMap["CriticalRateLimitDuration"] = strconv.FormatInt(common.CriticalRateLimitDuration, 10)
 	common.OptionMapRWMutex.Unlock()
+	if DB == nil {
+		return
+	}
 	options, _ := AllOption()
 	for _, option := range options {
 		updateOptionMap(option.Key, option.Value)
+	}
+	if os.Getenv("SESSION_SECRET") == "" {
+		common.OptionMapRWMutex.RLock()
+		savedSecret := common.OptionMap["SessionSecret"]
+		common.OptionMapRWMutex.RUnlock()
+		if strings.TrimSpace(savedSecret) == "" {
+			opt := Option{Key: "SessionSecret", Value: common.SessionSecret}
+			if err := DB.Save(&opt).Error; err == nil {
+				common.OptionMapRWMutex.Lock()
+				common.OptionMap["SessionSecret"] = common.SessionSecret
+				common.OptionMapRWMutex.Unlock()
+			}
+		}
 	}
 }
 
@@ -181,6 +202,10 @@ func updateOptionMap(key string, value string) {
 	case "KernelAutoStart":
 		if common.AutoStartKernel == nil || !*common.AutoStartKernel {
 			common.KernelAutoStart = value == "true"
+		}
+	case "SessionSecret":
+		if os.Getenv("SESSION_SECRET") == "" && strings.TrimSpace(value) != "" {
+			common.SessionSecret = strings.TrimSpace(value)
 		}
 	case "GeoIPProvider":
 		common.GeoIPProvider = value

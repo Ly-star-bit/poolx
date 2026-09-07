@@ -43,7 +43,7 @@ go run . --port 3000 --log-dir ./logs
 | `PORT` | Server 监听端口 | `3000` |
 | `GIN_MODE` | Gin 运行模式 | 非 `debug` 时按 release |
 | `LOG_LEVEL` | 日志等级 | `info` |
-| `SESSION_SECRET` | Session 签名密钥 | 启动时随机生成 |
+| `SESSION_SECRET` | Session 签名密钥 | 首次启动随机生成并自动持久化到数据库 |
 | `SQLITE_PATH` | SQLite 数据库文件路径 | `poolx.db` |
 | `SQL_DSN` | 兼容旧命名的 PostgreSQL DSN，优先级低于 `DSN` | 空 |
 | `REDIS_CONN_STRING` | Redis 连接串 | 空 |
@@ -52,7 +52,7 @@ go run . --port 3000 --log-dir ./logs
 
 说明：
 
-* `SESSION_SECRET` 在生产环境必须显式配置
+* `SESSION_SECRET` 未配置时会自动生成并持久化至 `options` 表，防止服务重启后因密钥重置导致用户掉登录与 cookie 验证报错；也可显式配置环境变量覆盖
 * `REDIS_CONN_STRING` 未配置时，相关能力退化为进程内实现
 * 服务端升级默认从 `Rain-kl/PoolX` 查询发布版本，可通过运行时配置 `ServerUpdateRepo` 覆盖
 
