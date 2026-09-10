@@ -4,160 +4,180 @@
 
 <div align="center">
 
-# PoolX
+# ⚡️ PoolX
 
-A proxy pool control panel built with Gin and Next.js. Its core goal is to organize Clash/Mihomo nodes into reusable proxy pools for web scraping, data collection, proxy requests, and automated outbound network scenarios.
+**Modern Proxy Kernel Control Plane · Build Resilient Proxy Pools for Scraping & Automation**
+
+[![Go Version](https://img.shields.io/badge/Go-1.24+-00ADD8?style=flat-square&logo=go)](https://go.dev/)
+[![Next.js](https://img.shields.io/badge/Next.js-15-black?style=flat-square&logo=next.js)](https://nextjs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.8-blue?style=flat-square&logo=typescript)](https://www.typescriptlang.org/)
+[![License](https://img.shields.io/badge/License-Apache--2.0-green?style=flat-square)](./LICENSE)
+
+Organize Clash / Mihomo nodes into high-availability, reusable, multi-port local proxy pools. No more tedious manual configuration maintenance.
 
 </div>
 
-> [!NOTE]
-> The node-to-proxy-pool approach based on glider is deprecated. The legacy version is archived in the `glider` branch. This project now provides a full graphical interface system for building proxy pools, currently supporting only the Mihomo core.
-
 > [!WARNING]
-> This project is only a proxy pool control panel and does NOT provide nodes or methods to obtain them. It is intended for learning, research, and technical exchange only. Any illegal use is strictly prohibited.
-
-> [!WARNING]
-> After logging in with the root account for the first time, be sure to change the default password `123456` immediately!
+> This project is solely a proxy pool control plane management tool and **does NOT provide any proxy nodes or methods to obtain them**. It is intended for technical learning, research, and legitimate network optimization only. After logging in with `root` for the first time, change the default password `123456` immediately.
 
 ---
 
-## Introduction
+## 📖 Overview
 
-When making multiple requests to target websites using crawlers, anti-scraping mechanisms are often triggered, leading to access bans. These bans are typically based on IP addresses, so switching IPs is an effective way to bypass restrictions and maintain stable scraping.
+When executing intensive requests in web crawlers, data harvesting, or automated outbound traffic scenarios, target services often impose rate-limiting and IP ban mechanisms. Common solutions have clear downsides:
+- **Free proxy pools**: Extremely low uptime, high latency, and poor stability;
+- **Commercial dynamic proxies**: Exorbitant pricing and unpredictable bandwidth billing;
+- **Manual kernel configs**: High operational overhead for multi-port routing, latency benchmarking, node elimination, and hot reloads without centralized oversight.
 
-A common solution is to use a proxy pool. However, existing solutions have drawbacks:
-
-- Free proxy pools often have poor quality, with low stability and availability
-- Paid proxy services can be expensive and exceed practical needs
-
-A more cost-effective approach is to utilize nodes provided by proxy service providers (“airports”), combined with open-source proxy cores, to build reusable proxy pools.
-
-This project provides a clean and user-friendly UI for efficiently managing and organizing proxy nodes, eliminating the need to manually write or maintain complex configuration files. It also offers unified core control for centralized management of the proxy engine.
-
-### Core Features
-
-- Import and manage a large number of nodes via configuration files or subscription URLs
-- Organize nodes into reusable proxy pools
-- Provide stable local proxy endpoints for crawlers, automation tasks, and proxy systems
-- Support load balancing, automatic fallback, and latency-based node selection
-- Visual dashboard for managing core runtime status
+**PoolX** solves this directly: Aggregate your existing node assets (subscription URLs or local configs), govern node pools and orchestrate workspace configurations through an intuitive web console, automatically generate runtime specifications, and launch the Mihomo core engine to expose robust, multi-port, failover-ready local proxy gateways.
 
 ---
 
-## Features
+## 🌟 Key Features
 
-- **Web Management Console**: Built-in authentication, role control, system settings, and audit logs.
-- **Multi-Source Import**: Import via local files or instant subscription URLs with dual-layer fingerprint deduplication.
-- **Node Pool Governance**: Real traffic latency testing via kernel, batch tagging, region-based grouping, and keyword filtering.
-- **Workspace Orchestration**: Build custom proxy pool entry points with flexible routing strategies (round-robin, fallback, load-balance).
-- **Multi-Port Listeners**: Configure multiple local ports, each mapped to isolated proxy pools and rules.
-- **Built-in Zashboard**: Embedded Clash dashboard connecting to the core through authenticated backend proxy.
+- 🖥️ **Modernized Panoramic Dashboard**
+  - High information density dashboard inspired by Cloudflare and Linear design aesthetics;
+  - Real-time KPI monitoring (total nodes, connectivity health rate, average latency, active port listener matrix);
+  - Protocol breakdown chart (SS / VMess / VLESS / Trojan / Hysteria, etc.) and regional distribution summary;
+  - Adaptive light/dark themes and a sleek glassmorphism authentication portal with password visibility toggle.
+- 🔄 **Fully Automated Kernel Lifecycle**
+  - **Instant auto-start**: Support `--auto-start-kernel` flag and environment variable to launch the kernel within 1 second;
+  - **Unified binary resolution**: Smart PATH fallback and Windows `.exe` auto-completion without raw executable fallback;
+  - **Real-time terminal log stream**: Built-in mock terminal monitor to stream live Mihomo outputs with 4-level color coding and search.
+- 📡 **Multi-Source Import & Fingerprint Deduplication**
+  - Import via local configuration files or remote subscription URLs with periodic or instant syncing;
+  - Dual-layer fingerprint matching to filter out corrupt and duplicate nodes automatically.
+- 🧪 **Live Real-Traffic Benchmark & Governance**
+  - Issue real requests via the kernel to target endpoints (e.g. Cloudflare 204) for true latency benchmarking;
+  - Single-node instant test and one-click bulk benchmarking;
+  - Node tagging system with quick preset tags and bulk operations.
+- 🎛️ **Workspace Multi-Port Proxy Orchestration**
+  - Independent multi-port listeners (Mixed / HTTP / Socks5) mapping separate ports to designated tasks;
+  - Flexible routing strategies: Round-Robin, Fallback, and Load-Balance;
+  - Hot configuration reload without dropping active scraping connections.
+- 🔒 **Stability & Security Foundation**
+  - **Persistent SessionSecret**: Automatically generated and stored in SQLite/Postgres on initial boot, eliminating session drops and cookie errors across restarts;
+  - Built-in user management, system audit logs, and IP-based rate limiting protection;
+  - **Single standalone binary**: Go backend embeds compiled Next.js assets into a single portable binary.
 
 ---
 
-## Typical Use Cases
+## 🏗️ Architecture
 
-- Proxy pools for web scraping and crawling services
-- Unified outbound proxy gateway for automation platforms
-- Rotating or fallback proxy entry points for data collection tasks
-- Workspace-based proxy orchestration for different target sites
-- Proxy access for AI services to reduce risk and improve stability
+```text
+[ Clients / Crawlers / Automation Scripts ]
+                      │
+                      │  Socks5 / HTTP Proxy Requests (:7890, :7891, ...)
+                      ▼
+┌──────────────────────────────────────────────┐
+│       PoolX Proxy Kernel Control Plane       │
+│                                              │
+│  ┌──────────────┐      ┌──────────────────┐  │
+│  │ Web Dashboard│ ◄──► │  Go Backend Core │  │
+│  └──────────────┘      └─────────┬────────┘  │
+│                                  │           │
+│                   IPC / REST API │ Control   │
+│                                  ▼           │
+│                        ┌──────────────────┐  │
+│                        │   Mihomo Engine  │  │
+│                        └─────────┬────────┘  │
+└──────────────────────────────────┼───────────┘
+                                   │
+              Outbound Traffic     │ (Round-robin / Fallback / Load-balance)
+                                   ▼
+                   [ Remote Node Pool (SS/VMess/Trojan...) ]
+                                   │
+                                   ▼
+                        [ Target Websites / APIs ]
+```
 
 ---
 
-## Quick Start
+## 🚀 Quick Start
 
-Login URL: `http://IP:3000/`  
-Username: `root`  
-Password: `123456`
+Default Access URL: `http://localhost:3000`  
+Default Credentials: `root` / `123456`
 
-### Docker Deployment
+### Option 1: Standalone Single Binary (Recommended)
+
+Download the precompiled binary from the Releases page (e.g. `poolx.exe`):
+
+```powershell
+# Run service with auto-start enabled
+.\poolx.exe --port 3000 --auto-start-kernel
+```
+
+> **Note**: On the first startup, SQLite database `poolx.db` and session keys are automatically created and persisted—no complex initial setup required!
+
+---
+
+### Option 2: Docker Compose
 
 ```yaml
 services:
-  postgres:
-    image: postgres:17-alpine
-    restart: unless-stopped
-    environment:
-      POSTGRES_DB: poolx
-      POSTGRES_USER: poolx
-      POSTGRES_PASSWORD: replace-with-strong-password
-    volumes:
-      - ./data/postgres:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U poolx -d poolx"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
   poolx:
-    image: ghcr.io/rain-kl/poolx:latest
+    image: ghcr.io/ly-star-bit/poolx:latest
     restart: unless-stopped
-    depends_on:
-      postgres:
-        condition: service_healthy
     ports:
-      - "3000:3000"
-#     Expose proxy listening ports as needed
+      - "3000:3000"           # Management web console
+      - "7890-7900:7890-7900" # Proxy listener port range for crawlers
     environment:
-      SESSION_SECRET: replace-with-random-string
-#     If SQL_DSN is specified, the following will be ignored
-      SQLITE_PATH: /data/poolx.db
-#     To use SQLite, comment out SQL_DSN and remove postgres service
-      SQL_DSN: postgres://poolx:replace-with-strong-password@postgres:5432/poolx?sslmode=disable
-      GIN_MODE: release
-      LOG_LEVEL: info
-
+      - PORT=3000
+      - POOLX_KERNEL_AUTO_START=true
+      - SQLITE_PATH=/data/poolx.db
+      - GIN_MODE=release
     volumes:
-      - ./data/poolx:/data
+      - ./data:/data
 ```
 
-### Local Deployment
+---
 
-Download the precompiled binary from the Release page:
+### Option 3: Local Source Build & Development
 
-```bash
-# Start with SQLite
-SESSION_SECRET=replace-with-random-string \
-SQLITE_PATH=/path/to/poolx.db \
-./poolx
+**Prerequisites**: Go 1.24+, Node.js 20+, pnpm 10+
+
+```powershell
+# 1. Clone the repository
+git clone https://github.com/Ly-star-bit/poolx.git
+cd poolx
+
+# 2. Frontend setup (Dev port 3001, proxies backend on 3000)
+cd server/web
+pnpm install
+pnpm dev
+
+# 3. Backend start (In a separate terminal, default port 3000)
+cd server
+go run ./cmd/server --port 3000 --auto-start-kernel
 ```
 
-Access URL: http://localhost:3000
-
-Default credentials:
-* Username: `root`
-* Password: `123456`
-
-### Source Build & Development
-
-**Prerequisites**: Go 1.24+, Node.js 18+, pnpm
-
-One-shot build on Windows:
+**One-Click Production Build (Embeds frontend into standalone executable)**:
 ```powershell
 cd server
 .\build.ps1                 # Full build (web + zashboard + poolx.exe)
-.\build.ps1 -SkipFrontend   # Skip frontend, compile Go binary and run all tests
+.\build.ps1 -SkipFrontend   # Skip frontend, compile Go binary and run tests
 ```
 
-Local development:
-- **Backend**: `cd server && go run ./cmd/server` (default: `http://127.0.0.1:3000`)
-- **Frontend**: `cd server/web && pnpm dev` (default: `http://127.0.0.1:3001`, proxies to backend)
+---
 
-## Configuration
+## ⚙️ Configuration Parameters
 
-PoolX does not require maintaining a fixed configuration file manually.
+PoolX supports command-line arguments, environment variables, and live updates via the web console:
 
-Its core workflow is:
-* Import nodes
-* Organize proxy pools
-* Define workspace listening configurations
-* Automatically render the final runtime configuration for the core
+| CLI Flag | Env Variable | Description | Default |
+| :--- | :--- | :--- | :--- |
+| `--port` | `PORT` | Server listening port | `3000` |
+| `--auto-start-kernel` | `POOLX_KERNEL_AUTO_START` | Auto-launch proxy kernel on boot | `false` |
+| `--log-dir` | `LOG_DIR` | Directory for log files (empty = stdout) | empty |
+| `-` | `SESSION_SECRET` | Session signing key (auto-persisted if unset) | Auto-persisted |
+| `-` | `SQLITE_PATH` | SQLite database file path | `poolx.db` |
+| `-` | `SQL_DSN` | PostgreSQL DSN (takes precedence if configured) | empty |
 
-For runtime parameters, deployment methods, and system configuration, refer to:
-* [docs/app-config.md](./docs/app-config.md)
-* [docs/deployment.md](./docs/deployment.md)
+> For complete runtime configuration and deployment guides, refer to [docs/app-config.md](./docs/app-config.md) and [docs/deployment.md](./docs/deployment.md).
 
-## License
+---
 
-This project is licensed under the [Apache License 2.0](./LICENSE).
+## 📄 License
+
+This project is open-sourced under the [Apache License 2.0](./LICENSE).
+
