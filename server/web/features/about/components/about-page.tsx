@@ -48,7 +48,7 @@ export function AboutPage() {
   }
 
   return (
-    <div className='space-y-6'>
+    <div className='w-full max-w-3xl space-y-6'>
       <AppCard
         title='关于 PoolX'
         description='公开展示当前系统的简介、版本信息与项目入口。'

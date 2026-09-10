@@ -10,7 +10,6 @@ import { z } from 'zod';
 
 import { InlineMessage } from '@/components/feedback/inline-message';
 import { TurnstileWidget } from '@/components/forms/turnstile-widget';
-import { AppCard } from '@/components/ui/app-card';
 import {
   register as registerUser,
   sendEmailVerification,
@@ -126,7 +125,18 @@ export function RegisterForm() {
 
   return (
     <PublicAuthGuard>
-      <AppCard title='新用户注册' description='兼容现有密码注册链路，后续可继续扩展第三方注册。'>
+      <div className='w-full max-w-[460px] rounded-2xl border border-[var(--border-default)] bg-[var(--surface-panel)]/90 p-7 sm:p-8 shadow-2xl backdrop-blur-xl transition-all'>
+        <div className='mb-6 text-center'>
+          <div className='mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-tr from-[var(--brand-primary)] to-[var(--brand-secondary)] shadow-lg shadow-[var(--brand-primary)]/20 ring-4 ring-[var(--brand-primary)]/10'>
+            <span className='text-lg font-black tracking-tight text-white'>PX</span>
+          </div>
+          <h1 className='text-xl font-bold tracking-tight text-[var(--foreground-primary)]'>
+            新用户注册
+          </h1>
+          <p className='mt-1 text-xs text-[var(--foreground-muted)]'>
+            创建账号以接入代理池控制平台
+          </p>
+        </div>
         <form className='space-y-4' onSubmit={handleSubmit}>
           <AuthFormField label='用户名' hint='最长 12 位'>
             <AuthInput placeholder='请输入用户名' {...form.register('username')} />
@@ -213,13 +223,13 @@ export function RegisterForm() {
           </AuthButton>
         </form>
 
-        <div className='mt-6 text-sm text-[var(--foreground-secondary)]'>
+        <div className='mt-6 text-center text-xs text-[var(--foreground-muted)]'>
           已有账户？
-          <Link href='/login' className='ml-2 text-[var(--brand-primary)] transition hover:opacity-80'>
+          <Link href='/login' className='ml-1.5 font-medium text-[var(--brand-primary)] hover:underline transition'>
             点击登录
           </Link>
         </div>
-      </AppCard>
+      </div>
     </PublicAuthGuard>
   );
 }

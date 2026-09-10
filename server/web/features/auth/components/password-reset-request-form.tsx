@@ -9,7 +9,6 @@ import { z } from 'zod';
 
 import { InlineMessage } from '@/components/feedback/inline-message';
 import { TurnstileWidget } from '@/components/forms/turnstile-widget';
-import { AppCard } from '@/components/ui/app-card';
 import { sendPasswordResetEmail } from '@/features/auth/api/auth';
 import { getPublicStatus } from '@/features/auth/api/public';
 import {
@@ -62,7 +61,18 @@ export function PasswordResetRequestForm() {
 
   return (
     <PublicAuthGuard>
-      <AppCard title='密码重置' description='提交后，系统会向你的注册邮箱发送重置链接。'>
+      <div className='w-full max-w-[420px] rounded-2xl border border-[var(--border-default)] bg-[var(--surface-panel)]/90 p-7 sm:p-8 shadow-2xl backdrop-blur-xl transition-all'>
+        <div className='mb-6 text-center'>
+          <div className='mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-tr from-[var(--brand-primary)] to-[var(--brand-secondary)] shadow-lg shadow-[var(--brand-primary)]/20 ring-4 ring-[var(--brand-primary)]/10'>
+            <span className='text-lg font-black tracking-tight text-white'>PX</span>
+          </div>
+          <h1 className='text-xl font-bold tracking-tight text-[var(--foreground-primary)]'>
+            密码重置
+          </h1>
+          <p className='mt-1 text-xs text-[var(--foreground-muted)]'>
+            提交后，系统会向你的注册邮箱发送重置链接
+          </p>
+        </div>
         <form className='space-y-4' onSubmit={handleSubmit}>
           <AuthFormField label='邮箱地址'>
             <AuthInput type='email' placeholder='请输入邮箱地址' {...form.register('email')} />
@@ -89,13 +99,13 @@ export function PasswordResetRequestForm() {
           </AuthButton>
         </form>
 
-        <div className='mt-6 text-sm text-[var(--foreground-secondary)]'>
+        <div className='mt-6 text-center text-xs text-[var(--foreground-muted)]'>
           想起密码了？
-          <Link href='/login' className='ml-2 text-[var(--brand-primary)] transition hover:opacity-80'>
+          <Link href='/login' className='ml-1.5 font-medium text-[var(--brand-primary)] hover:underline transition'>
             返回登录
           </Link>
         </div>
-      </AppCard>
+      </div>
     </PublicAuthGuard>
   );
 }

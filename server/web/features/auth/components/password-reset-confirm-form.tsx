@@ -6,7 +6,6 @@ import { useSearchParams } from 'next/navigation';
 import { useState } from 'react';
 
 import { InlineMessage } from '@/components/feedback/inline-message';
-import { AppCard } from '@/components/ui/app-card';
 import { resetPassword } from '@/features/auth/api/auth';
 import {
   AuthButton,
@@ -39,7 +38,19 @@ export function PasswordResetConfirmForm() {
   const missingParams = !email || !token;
 
   return (
-    <AppCard title='密码重置确认' description='确认后，系统会生成新的随机密码。'>
+    <div className='w-full max-w-[420px] rounded-2xl border border-[var(--border-default)] bg-[var(--surface-panel)]/90 p-7 sm:p-8 shadow-2xl backdrop-blur-xl transition-all'>
+      <div className='mb-6 text-center'>
+        <div className='mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-tr from-[var(--brand-primary)] to-[var(--brand-secondary)] shadow-lg shadow-[var(--brand-primary)]/20 ring-4 ring-[var(--brand-primary)]/10'>
+          <span className='text-lg font-black tracking-tight text-white'>PX</span>
+        </div>
+        <h1 className='text-xl font-bold tracking-tight text-[var(--foreground-primary)]'>
+          密码重置确认
+        </h1>
+        <p className='mt-1 text-xs text-[var(--foreground-muted)]'>
+          确认后，系统会生成新的随机密码
+        </p>
+      </div>
+
       <div className='space-y-4'>
         <AuthFormField label='邮箱地址'>
           <AuthInput value={email} readOnly />
@@ -70,13 +81,13 @@ export function PasswordResetConfirmForm() {
           ) : null}
         </div>
 
-        <div className='text-sm text-[var(--foreground-secondary)]'>
+        <div className='mt-6 text-center text-xs text-[var(--foreground-muted)]'>
           处理完成后可返回
-          <Link href='/login' className='ml-2 text-[var(--brand-primary)] transition hover:opacity-80'>
+          <Link href='/login' className='ml-1.5 font-medium text-[var(--brand-primary)] hover:underline transition'>
             登录页
           </Link>
         </div>
       </div>
-    </AppCard>
+    </div>
   );
 }
