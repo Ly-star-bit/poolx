@@ -175,7 +175,7 @@ pnpm dev
 * 上传服务端二进制进行手动升级
 * 执行服务端升级流程
 
-默认升级仓库为 `Rain-kl/PoolX`，可在系统设置中通过 `ServerUpdateRepo` 改为自己的 GitHub 发布仓库，格式为 `owner/repo`。
+默认升级仓库为 `Ly-star-bit/poolx`，可在系统设置中通过 `ServerUpdateRepo` 改为自己的 GitHub 发布仓库，格式为 `owner/repo`。
 
 当前系统设置还支持配置代理内核：
 

@@ -10,7 +10,7 @@ import (
 var StartTime = time.Now().Unix() // unit: second
 var Version = "dev"               // release builds inject the tag version via ldflags
 
-const DefaultServerUpdateRepo = "Rain-kl/PoolX"
+const DefaultServerUpdateRepo = "Ly-star-bit/poolx"
 const DefaultKernelType = "mihomo"
 const DefaultMihomoReleaseRepo = "MetaCubeX/mihomo"
 const DefaultNodeTestURL = "https://cp.cloudflare.com/generate_204"

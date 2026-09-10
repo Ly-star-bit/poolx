@@ -352,14 +352,14 @@ func TestScheduleServerUpgradeUsesDownloadedBinaryValidation(t *testing.T) {
 	SetUpdateHTTPClientForTest(&http.Client{
 		Transport: serverUpdateRoundTripFunc(func(req *http.Request) (*http.Response, error) {
 			switch req.URL.String() {
-			case "https://api.github.com/repos/Rain-kl/PoolX/releases/latest":
+			case "https://api.github.com/repos/" + common.DefaultServerUpdateRepo + "/releases/latest":
 				return &http.Response{
 					StatusCode: http.StatusOK,
 					Header:     make(http.Header),
 					Body: io.NopCloser(strings.NewReader(`{
 						"tag_name":"v0.5.0",
 						"body":"release notes",
-						"html_url":"https://github.com/Rain-kl/PoolX/releases/tag/v0.5.0",
+						"html_url":"https://github.com/` + common.DefaultServerUpdateRepo + `/releases/tag/v0.5.0",
 						"published_at":"2026-03-11T00:00:00Z",
 						"assets":[{"name":"poolx-server-` + runtime.GOOS + `-` + runtime.GOARCH + `","browser_download_url":"https://downloads.example.com/poolx-server"}]
 					}`)),

@@ -54,7 +54,10 @@ go run . --port 3000 --log-dir ./logs
 
 * `SESSION_SECRET` 未配置时会自动生成并持久化至 `options` 表，防止服务重启后因密钥重置导致用户掉登录与 cookie 验证报错；也可显式配置环境变量覆盖
 * `REDIS_CONN_STRING` 未配置时，相关能力退化为进程内实现
-* 服务端升级默认从 `Rain-kl/PoolX` 查询发布版本，可通过运行时配置 `ServerUpdateRepo` 覆盖
+* 服务端升级默认从 `Ly-star-bit/poolx` 查询发布版本，可通过运行时配置 `ServerUpdateRepo` 覆盖
+* 管理端上传的服务端二进制只保存在本地临时文件，升级替换由服务端内部任务执行
+* 代理内核安装包默认从 `MetaCubeX/mihomo` 查询并下载，也可通过手动上传本地二进制完成安装
+* 系统支持节点真实可用性与延时测速，默认测速端点为 `https://cp.cloudflare.com/generate_204`，可通过 `NodeTestDefaultURL` 修改
 
 ### 1.3 运行时配置（Option）
 
@@ -66,7 +69,8 @@ go run . --port 3000 --log-dir ./logs
 | `PasswordRegisterEnabled` | 是否启用密码注册 | `true` |
 | `EmailVerificationEnabled` | 是否启用邮箱验证码流程 | `false` |
 | `RegisterEnabled` | 是否允许用户注册 | `false` |
-| `ServerUpdateRepo` | 服务端版本检查与升级使用的 GitHub 仓库，格式为 `owner/repo` | `Rain-kl/PoolX` |
+| `ServerAddress` | 服务端外部访问地址，影响生成的完整链接 | `http://localhost:3000` |
+| `ServerUpdateRepo` | 服务端版本检查与升级使用的 GitHub 仓库，格式为 `owner/repo` | `Ly-star-bit/poolx` |
 | `KernelType` | 当前启用的代理内核类型 | `mihomo` |
 | `MihomoBinaryPath` | Mihomo 二进制安装路径 | 空 |
 | `MihomoBinaryVersion` | 最近一次校验通过的 Mihomo 版本输出 | 空 |
@@ -104,7 +108,7 @@ go run . --port 3000 --log-dir ./logs
 说明：
 
 * Token、Secret 一类敏感配置默认不会通过选项列表直接回显；`ClashSecret` 作为运行控制必需配置，允许在管理员设置页中直接维护
-* `ServerUpdateRepo` 默认值为 `Rain-kl/PoolX`，用于版本检查与自动升级；如使用自建发布仓库，可改为自己的 `owner/repo`
+* `ServerUpdateRepo` 默认值为 `Ly-star-bit/poolx`，用于版本检查与自动升级；如使用自建发布仓库，可改为自己的 `owner/repo`
 * `KernelType` 当前仅允许设置为 `mihomo`，`xray` 与 `singbox` 仅保留前端预留入口
 * `MihomoBinaryPath`、`MihomoBinaryVersion` 与 `MihomoBinarySource` 由系统设置中的内核安装流程维护
 * `ClashAllowLAN`、`ClashExternalController`、`ClashMode` 与 `ClashSecret` 由设置页“Clash 设置”统一维护，并会在运行阶段参与最终 Mihomo 配置渲染

@@ -47,7 +47,7 @@ import {
 import { formatDateTime } from '@/lib/utils/date';
 
 const settingsQueryKey = ['settings', 'options'] as const;
-const defaultServerUpdateRepo = 'Rain-kl/PoolX';
+const defaultServerUpdateRepo = 'Ly-star-bit/poolx';
 
 const defaultSystemFields = {
   ServerAddress: '',

@@ -69,18 +69,26 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
+          cache: "pnpm"
+          cache-dependency-path: |
+            server/web/pnpm-lock.yaml
+            server/zashboard/pnpm-lock.yaml
 
-      - name: Build Frontend
+      - name: Build Web Frontend
         env:
           CI: ""
           VERSION: ${{ needs.prepare.outputs.version }}
         run: |
           cd server/web
-          corepack enable
           pnpm install --frozen-lockfile
           NEXT_PUBLIC_APP_VERSION="$VERSION" pnpm build
 
@@ -89,17 +97,18 @@ jobs:
           CI: ""
         run: |
           cd server/zashboard
-          corepack enable
           pnpm install --frozen-lockfile
           pnpm build
 
-      - name: Upload Frontend Artifacts
+      - name: Package Frontend Assets
+        run: |
+          tar -czf frontend-assets.tar.gz -C server web/build zashboard/dist
+
+      - name: Upload Frontend Artifact
         uses: actions/upload-artifact@v4
         with:
           name: frontend-assets
-          path: |
-            server/web/build
-            server/zashboard/dist
+          path: frontend-assets.tar.gz
           retention-days: 1
 
   build-binaries:
@@ -115,18 +124,27 @@ jobs:
           - goos: linux
             goarch: amd64
             asset_name: poolx-server-linux-amd64
+            archive_type: tar
           - goos: linux
             goarch: arm64
             asset_name: poolx-server-linux-arm64
+            archive_type: tar
           - goos: darwin
             goarch: amd64
             asset_name: poolx-server-darwin-amd64
+            archive_type: tar
           - goos: darwin
             goarch: arm64
             asset_name: poolx-server-darwin-arm64
+            archive_type: tar
           - goos: windows
             goarch: amd64
             asset_name: poolx-server-windows-amd64.exe
+            archive_type: zip
+          - goos: windows
+            goarch: arm64
+            asset_name: poolx-server-windows-arm64.exe
+            archive_type: zip
 
     steps:
       - name: Checkout
@@ -138,7 +156,12 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: frontend-assets
-          path: server
+
+      - name: Extract Frontend Assets
+        run: |
+          tar -xzf frontend-assets.tar.gz -C server
+          test -f server/web/build/index.html || { echo "web/build/index.html missing"; exit 1; }
+          test -f server/zashboard/dist/index.html || { echo "zashboard/dist/index.html missing"; exit 1; }
 
       - name: Set up Go
         uses: actions/setup-go@v5
@@ -158,11 +181,27 @@ jobs:
           mkdir -p ../dist
           go build -trimpath -ldflags "-s -w -X 'poolx/internal/pkg/common.Version=$VERSION'" -o "../dist/$ASSET_NAME" .
 
+      - name: Package Archive
+        working-directory: dist
+        env:
+          ASSET_NAME: ${{ matrix.asset_name }}
+          ARCHIVE_TYPE: ${{ matrix.archive_type }}
+          VERSION: ${{ needs.prepare.outputs.version }}
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+        run: |
+          ARCHIVE_NAME="poolx-${VERSION}-${GOOS}-${GOARCH}"
+          if [ "$ARCHIVE_TYPE" = "zip" ]; then
+            zip -j "${ARCHIVE_NAME}.zip" "$ASSET_NAME"
+          else
+            tar -czf "${ARCHIVE_NAME}.tar.gz" "$ASSET_NAME"
+          fi
+
       - name: Upload Binary Artifact
         uses: actions/upload-artifact@v4
         with:
           name: server-${{ matrix.goos }}-${{ matrix.goarch }}
-          path: dist/${{ matrix.asset_name }}
+          path: dist/*
           retention-days: 1
 
   release:
@@ -179,8 +218,14 @@ jobs:
           path: dist
           merge-multiple: true
 
-      - name: Release
-        uses: softprops/action-gh-release@v1
+      - name: Generate Checksums
+        working-directory: dist
+        run: |
+          sha256sum * > checksums.txt
+          cat checksums.txt
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ needs.prepare.outputs.version }}
           name: ${{ needs.prepare.outputs.version }}
